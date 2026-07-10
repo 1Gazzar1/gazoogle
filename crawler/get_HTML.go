@@ -7,12 +7,20 @@ import (
 )
 
 func getHTML(url string) (HTML string, err error) {
-	resp, err := http.Get(url)
+	
+	client := &http.Client{}
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return "", fmt.Errorf("failed to build request,error %v", err)
+	}
+	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+
+	resp, err := client.Do(req)
 	if err != nil {
 		return "", err
 	}
 	if resp.StatusCode > 299 {
-		return "", fmt.Errorf("page didn't return a 200 OK or similar")
+		return "", fmt.Errorf("page didn't return a 200 OK or similar, status code: %v, error : %v", resp.StatusCode, err)
 	}
 
 	defer resp.Body.Close()
