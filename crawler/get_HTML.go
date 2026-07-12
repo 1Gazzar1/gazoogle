@@ -4,10 +4,11 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 )
 
 func getHTML(url string) (HTML string, err error) {
-	
+
 	client := &http.Client{}
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
@@ -19,11 +20,17 @@ func getHTML(url string) (HTML string, err error) {
 	if err != nil {
 		return "", err
 	}
+
+	defer resp.Body.Close()
+
 	if resp.StatusCode > 299 {
 		return "", fmt.Errorf("page didn't return a 200 OK or similar, status code: %v, error : %v", resp.StatusCode, err)
 	}
+	if cType := resp.Header.Get("Content-Type"); !strings.Contains(cType, "text/html") {
 
-	defer resp.Body.Close()
+		return "", fmt.Errorf("invalid page content type %v", cType)
+
+	}
 
 	bodyBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
