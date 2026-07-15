@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"sync"
+
+	"github.com/1gazzar1/gazoogle/crawler/util"
 )
 
 type config struct {
@@ -23,6 +25,9 @@ func (cnf *config) ifPageNotExistThenAdd(URL string) (exists bool, currentLenght
 	return true, len(cnf.pageSet)
 }
 
+// TODO: I should make it so redis holds a list of the next pages that should be scraped
+// so that way it works if there's multiple crawlers
+// and add a set for already scraped pages with redis too
 func (cnf *config) crawlPage(URL string) {
 	// semaphore patten, so each goroutines holds one spot
 	cnf.sem <- struct{}{}
@@ -36,18 +41,18 @@ func (cnf *config) crawlPage(URL string) {
 		// if the page exists return
 		return
 	}
-	pageData, err := buildPageData(URL)
+	pageData, err := util.BuildPageData(URL)
 	if err != nil {
 		fmt.Printf("Failed to build page with url: %v, error: %v", URL, err)
 		return
 	}
 	// pass the pageData to redis here
 	fmt.Println("\n+++++++++++++++++++++++++++++++++++++++++++")
-	fmt.Printf("%v- Scraped page: %v, it has %v forward links\n", no, pageData.title, len(pageData.OutgoingLinks))
+	fmt.Printf("%v- Scraped page: %v, it has %v forward links\n", no, pageData.Title, len(pageData.OutgoingLinks))
 
 	for _, url := range pageData.OutgoingLinks {
 		// normalize url first then add it to the channel so other workers recieve it
-		normURL, err := normalizeURL(url)
+		normURL, err := util.NormalizeURL(url)
 		if err != nil {
 			fmt.Printf("failed to normalize url: %v, error: %v", url, err)
 			// skip the url, don't return

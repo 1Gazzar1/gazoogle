@@ -3,11 +3,18 @@ package main
 import (
 	"fmt"
 	"sync"
+
+	"github.com/1gazzar1/gazoogle/crawler/db"
+	"github.com/joho/godotenv"
 )
 
 func main() {
+	godotenv.Load()
 	const startPage = "https://en.wikipedia.org/wiki/Ultrakill"
 	const limit = 3
+
+	db.InitRedis()
+
 	cnf := config{
 		mu:      &sync.Mutex{},
 		pageSet: map[string]struct{}{},
@@ -19,6 +26,5 @@ func main() {
 	cnf.wg.Add(1)
 	go cnf.crawlPage(startPage)
 
-	// just something to block
 	cnf.wg.Wait()
 }

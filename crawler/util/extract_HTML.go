@@ -1,4 +1,4 @@
-package main
+package util
 
 import (
 	"fmt"
@@ -11,12 +11,12 @@ import (
 type PageData struct {
 	URL           string // the normalized url of the page
 	HTML          string
-	title         string
+	Title         string
 	OutgoingLinks []string // basically the urls inside a page
 	ImageURLs     []string
 }
 
-func buildPageData(URL string) (pageData PageData, err error) {
+func BuildPageData(URL string) (pageData PageData, err error) {
 	// URL is normalized anyways, so we just parse it to use ResolveRef inside other functions
 
 	u, err := url.Parse(URL)
@@ -43,7 +43,7 @@ func buildPageData(URL string) (pageData PageData, err error) {
 
 	return PageData{
 		URL:           URL,
-		title:         title,
+		Title:         title,
 		HTML:          HTML,
 		OutgoingLinks: urls,
 		ImageURLs:     imgs,

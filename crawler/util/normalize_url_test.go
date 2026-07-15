@@ -1,4 +1,4 @@
-package main
+package util
 
 import (
 	"testing"
@@ -56,7 +56,7 @@ func TestNormalizeURL(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			actual, err := normalizeURL(tt.input)
+			actual, err := NormalizeURL(tt.input)
 
 			if tt.hasError {
 				if err == nil {

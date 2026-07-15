@@ -1,11 +1,11 @@
-package main
+package util
 
 import (
 	"net/url"
 	"strings"
 )
 
-func normalizeURL(URL string) (normURL string, err error) {
+func NormalizeURL(URL string) (normURL string, err error) {
 	// fun fact
 	// in internet urls, the domain part is case insensitive,
 	// but that path and query are case sensitive
