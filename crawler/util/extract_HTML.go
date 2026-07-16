@@ -9,11 +9,11 @@ import (
 )
 
 type PageData struct {
-	URL           string // the normalized url of the page
-	HTML          string
-	Title         string
-	OutgoingLinks []string // basically the urls inside a page
-	ImageURLs     []string
+	URL           string   `json:"URL"` // the normalized url of the page
+	HTML          string   `json:"HTML"`
+	Title         string   `json:"Title"`
+	OutgoingLinks []string `json:"OutgoingLinks"` // basically the urls inside a page
+	ImageURLs     []string `json:"ImageURLs"`
 }
 
 func BuildPageData(URL string) (pageData PageData, err error) {

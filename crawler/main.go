@@ -16,15 +16,14 @@ func main() {
 	db.InitRedis()
 
 	cnf := config{
-		mu:      &sync.Mutex{},
-		pageSet: map[string]struct{}{},
-		sem:     make(chan struct{}, limit),
-		wg:      &sync.WaitGroup{},
+		mu:  &sync.Mutex{},
+		sem: make(chan struct{}, limit),
+		wg:  &sync.WaitGroup{},
 	}
 	fmt.Println("starting the crawler")
 
 	cnf.wg.Add(1)
-	go cnf.crawlPage(startPage)
+	go cnf.crawlPage(startPage, false)
 
 	cnf.wg.Wait()
 }
