@@ -36,13 +36,14 @@ func AddPageToPriorityQueue(normURL string) error {
 	if err != nil {
 		return fmt.Errorf("failed to push url to priority queue: %v", err)
 	}
-	fmt.Printf("Pushed %v to priority queue\n", normURL)
+	// fmt.Printf("Pushed %v to priority queue\n", normURL)
 	return nil
 }
 func PopPageFromPriorityQueue() (url string, err error) {
 	url, err = DB.RPop(ctx, constants.PriorityQueue).Result()
+
 	if err != nil {
-		return "", fmt.Errorf("failed to pop url to priority queue: %v", err)
+		return "", err
 	}
 	fmt.Printf("Poped %v from priority queue\n", url)
 	return url, nil

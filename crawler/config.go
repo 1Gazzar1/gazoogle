@@ -3,17 +3,12 @@ package main
 import (
 	"fmt"
 	"log"
-	"sync"
+	"time"
 
 	"github.com/1gazzar1/gazoogle/crawler/db"
 	"github.com/1gazzar1/gazoogle/crawler/util"
+	"github.com/redis/go-redis/v9"
 )
-
-type config struct {
-	mu  *sync.Mutex
-	sem chan struct{}
-	wg  *sync.WaitGroup
-}
 
 // redis handles all that so that's not necassary
 
@@ -21,32 +16,60 @@ type config struct {
 // 	cnf.mu.Lock()
 // 	defer cnf.mu.Unlock()
 
-// 	if _, exists := cnf.pageSet[URL]; !exists {
-// 		cnf.pageSet[URL] = struct{}{}
-// 		return false, len(cnf.pageSet)
-// 	}
-// 	return true, len(cnf.pageSet)
-// }
+//		if _, exists := cnf.pageSet[URL]; !exists {
+//			cnf.pageSet[URL] = struct{}{}
+//			return false, len(cnf.pageSet)
+//		}
+//		return true, len(cnf.pageSet)
+//	}
+func claimPage(URL string) (exists bool, err error) {
+	exists, err = db.ExistsInPageSet(URL)
+	if err != nil {
+		return true, err
+	}
+	if exists {
+		return true, nil
+	}
+	// if page doesn't exist, then claim it by adding it to the set first
+	// that way other goroutines would return early
+	err = db.AddPageToSet(URL)
+	if err != nil {
+		return true, err
+	}
+	return false, nil
 
-func (cnf *config) crawlPage(URL string, internal bool) {
-	// semaphore patten, so each goroutines holds one spot
-	cnf.sem <- struct{}{}
+}
+func worker() {
+	for {
+		crawlOnePage("", true)
+	}
+}
+func crawlOnePage(URL string, internal bool) {
+	// cnf.sem <- struct{}{}
 
-	defer func() {
-		<-cnf.sem
-		// cnf.wg.Done()
-	}()
+	// defer func() {
+	// 	<-cnf.sem
+	// 	cnf.wg.Done()
+	// 	// cnf.wg.Add(1)
+	// 	go cnf.crawlPage("", true)
+	// }()
 	// so i can use = instead of := and handle scope correctly
 	var err error
 	if internal {
 		URL, err = db.PopPageFromPriorityQueue()
+		if err == redis.Nil {
+			// if the queue is empty
+			time.Sleep(1 * time.Second)
+			// return so it loops and tries again
+			return
+		}
 		if err != nil {
 			log.Printf("error while fetching next url, error: %v", err)
 			return
 		}
 	}
 	// exists, no := cnf.ifPageNotExistThenAdd(URL)
-	exists, err := db.ExistsInPageSet(URL)
+	exists, err := claimPage(URL)
 	if err != nil {
 		//skip
 		log.Printf("error while crawling: %v", err)
@@ -68,12 +91,7 @@ func (cnf *config) crawlPage(URL string, internal bool) {
 		log.Printf("error while crawling: %v", err)
 		return
 	}
-	// then add it to the page set
-	err = db.AddPageToSet(URL)
-	if err != nil {
-		log.Printf("error while crawling: %v", err)
-		return
-	}
+
 	no, err := db.GetSetLen()
 	if err != nil {
 		//skip
@@ -91,7 +109,7 @@ func (cnf *config) crawlPage(URL string, internal bool) {
 			// skip the url, don't return
 			continue
 		}
-		if exists, _ := db.ExistsInPageSet(url); exists {
+		if exists, _ := db.ExistsInPageSet(normURL); exists {
 			continue
 		}
 		// add to redis priority queue
@@ -103,7 +121,5 @@ func (cnf *config) crawlPage(URL string, internal bool) {
 
 	}
 	// this way it recursively scrapes the whole internet
-	cnf.wg.Add(1)
-	go cnf.crawlPage("", true)
 
 }

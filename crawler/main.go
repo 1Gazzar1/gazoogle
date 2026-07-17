@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"sync"
 
 	"github.com/1gazzar1/gazoogle/crawler/db"
 	"github.com/joho/godotenv"
@@ -11,19 +10,18 @@ import (
 func main() {
 	godotenv.Load()
 	const startPage = "https://en.wikipedia.org/wiki/Ultrakill"
-	const limit = 3
+	const workers = 1
 
 	db.InitRedis()
 
-	cnf := config{
-		mu:  &sync.Mutex{},
-		sem: make(chan struct{}, limit),
-		wg:  &sync.WaitGroup{},
-	}
 	fmt.Println("starting the crawler")
 
-	cnf.wg.Add(1)
-	go cnf.crawlPage(startPage, false)
+	for range workers {
+		go worker()
+	}
+	db.AddPageToPriorityQueue(startPage)
 
-	cnf.wg.Wait()
+	// just something to block
+	ch := make(chan struct{})
+	ch <- struct{}{}
 }
