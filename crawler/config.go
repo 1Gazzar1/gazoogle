@@ -3,8 +3,10 @@ package main
 import (
 	"fmt"
 	"log"
+	"sync"
 	"time"
 
+	"github.com/1gazzar1/gazoogle/crawler/constants"
 	"github.com/1gazzar1/gazoogle/crawler/db"
 	"github.com/1gazzar1/gazoogle/crawler/util"
 	"github.com/redis/go-redis/v9"
@@ -39,8 +41,32 @@ func claimPage(URL string) (exists bool, err error) {
 	return false, nil
 
 }
-func worker() {
+func worker(wg *sync.WaitGroup, limit int) {
+	defer wg.Done()
 	for {
+		// Checking if the limit is reached before each time we scrape a new page
+		n, err := db.GetSetLen()
+		if err != nil {
+			log.Printf("error checking set len: %v", err)
+			continue
+		}
+		if n >= limit {
+			log.Printf("Worker Finished Crawling %v (limit) Pages", limit)
+			return
+		}
+		// if the indexer queue is over a certain number then pause the goroutine for a sec so it catches up
+		idxLen, err := db.GetIndexerQueueLen()
+		if err != nil {
+			log.Printf("error checking indexer queue len: %v", err)
+			continue
+		}
+		if idxLen >= constants.IndexerQueueLimit {
+			log.Printf("Worker waiting for indexer to catch up, current indexer queue size: %v", idxLen)
+			time.Sleep(1 * time.Second)
+			continue
+		}
+
+		// finally crawl a page
 		crawlOnePage("", true)
 	}
 }
@@ -58,7 +84,7 @@ func crawlOnePage(URL string, internal bool) {
 	if internal {
 		URL, err = db.PopPageFromPriorityQueue()
 		if err == redis.Nil {
-			// if the queue is empty
+			// if the queue is empty pause the goroutine for a second
 			time.Sleep(1 * time.Second)
 			// return so it loops and tries again
 			return
