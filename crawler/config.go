@@ -85,6 +85,7 @@ func crawlOnePage(URL string, internal bool) {
 		URL, err = db.PopPageFromPriorityQueue()
 		if err == redis.Nil {
 			// if the queue is empty pause the goroutine for a second
+			log.Printf("Priority Queue is Empty, waiting...")
 			time.Sleep(1 * time.Second)
 			// return so it loops and tries again
 			return
@@ -109,11 +110,13 @@ func crawlOnePage(URL string, internal bool) {
 	pageData, err := util.BuildPageData(URL)
 	if err != nil {
 		fmt.Printf("Failed to build page with url: %v, error: %v", URL, err)
+		// TODO:make a function to un-claim a page if this fails
 		return
 	}
 	// pass the pageData to redis here
 	err = db.AddPageToIndexerQueue(pageData)
 	if err != nil {
+		// TODO:make a function to un-claim a page if this fails
 		log.Printf("error while crawling: %v", err)
 		return
 	}
@@ -121,6 +124,7 @@ func crawlOnePage(URL string, internal bool) {
 	no, err := db.GetSetLen()
 	if err != nil {
 		//skip
+		// TODO:make a function to un-claim a page if this fails
 		log.Printf("error while crawling: %v", err)
 		return
 	}

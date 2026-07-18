@@ -8,12 +8,27 @@ import (
 	"github.com/PuerkitoBio/goquery"
 )
 
+var bannedNamespaces = map[string]bool{
+	"Talk":        true,
+	"User":        true,
+	"Wikipedia":   true,
+	"File":        true,
+	"MediaWiki":   true,
+	"Template":    true,
+	"Help":        true,
+	"Category":    true,
+	"Portal":      true,
+	"Special":     true,
+	"Main_Page":   true,
+	"Entity_Page": true,
+}
+
 type PageData struct {
-	URL           string   `json:"URL"` // the normalized url of the page
-	HTML          string   `json:"HTML"`
-	Title         string   `json:"Title"`
-	OutgoingLinks []string `json:"OutgoingLinks"` // basically the urls inside a page
-	ImageURLs     []string `json:"ImageURLs"`
+	URL           string            `json:"URL"` // the normalized url of the page
+	HTML          string            `json:"HTML"`
+	Title         string            `json:"Title"`
+	OutgoingLinks []string          `json:"OutgoingLinks"` // basically the urls inside a page
+	ImageURLs     map[string]string `json:"ImageURLs"`     // a map where the key is the url and val is the 'alt' text
 }
 
 func BuildPageData(URL string) (pageData PageData, err error) {
@@ -56,31 +71,66 @@ func extractURLs(HTML string, baseURL *url.URL) (OutgoingLinks []string, err err
 		return nil, fmt.Errorf("failed to parse HTML %v", err)
 	}
 	doc.Find("a").Each(func(i int, s *goquery.Selection) {
-		if att, exists := s.Attr("href"); exists {
-			u, err := url.Parse(att)
-			if err != nil {
+		att, exists := s.Attr("href")
+
+		if !exists {
+			return
+		}
+
+		u, err := url.Parse(att)
+		if err != nil {
+			return
+		}
+		u = baseURL.ResolveReference(u)
+		// guard check to ignore some wiki sites
+		hostAndPath := u.Host + u.Path
+
+		if strings.Contains(u.Host, "wikipedia") {
+			// 1. Strictly enforce en.wikipedia.org/wiki/
+			if !strings.HasPrefix(hostAndPath, "en.wikipedia.org/wiki/") {
 				return
 			}
-			u = baseURL.ResolveReference(u)
-			OutgoingLinks = append(OutgoingLinks, u.String())
+
+			// 2. Extract the page title (everything after /wiki/)
+			title := strings.TrimPrefix(hostAndPath, "en.wikipedia.org/wiki/")
+
+			// 3. Check for banned namespaces (e.g., Category: or Talk:)
+			parts := strings.SplitN(title, ":", 2)
+			if len(parts) > 1 {
+				if bannedNamespaces[parts[0]] {
+					return
+				}
+			} else if bannedNamespaces[title] {
+				// Catch the "Main_Page" edge case
+				return
+			}
 		}
+
+		OutgoingLinks = append(OutgoingLinks, u.String())
 	})
 	return OutgoingLinks, nil
 }
-func extractImages(HTML string, baseURL *url.URL) (ImageURLs []string, err error) {
+func extractImages(HTML string, baseURL *url.URL) (ImageURLs map[string]string, err error) {
 	doc, err := getDoc(HTML)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse HTML %v", err)
 	}
+	ImageURLs = make(map[string]string)
 	doc.Find("img").Each(func(i int, s *goquery.Selection) {
-		if att, exists := s.Attr("src"); exists {
-			u, err := url.Parse(att)
-			if err != nil {
-				return
-			}
-			u = baseURL.ResolveReference(u)
-			ImageURLs = append(ImageURLs, u.String())
+		// if the img tag doesn't have both 'src' & 'alt' then return
+		src, srcExists := s.Attr("src")
+		altText, altExists := s.Attr("alt")
+		if !(srcExists || altExists) {
+			return
 		}
+		u, err := url.Parse(src)
+		if err != nil {
+			return
+		}
+
+		u = baseURL.ResolveReference(u)
+
+		ImageURLs[u.String()] = altText
 	})
 	return ImageURLs, nil
 }

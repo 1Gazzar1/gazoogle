@@ -26,6 +26,10 @@ func NormalizeURL(URL string) (normURL string, err error) {
 	// remove trailing slashes
 	parsed.Path, _ = strings.CutSuffix(parsed.Path, "/")
 
+	// remove fragments (like #header)
+	parsed.Fragment = ""
+	parsed.RawFragment = ""
+
 	// sort the queries
 	parsed.RawQuery = parsed.Query().Encode()
 	return parsed.String(), nil

@@ -52,6 +52,12 @@ func TestNormalizeURL(t *testing.T) {
 			expected: "",
 			hasError: true,
 		},
+		{
+			name:     "Strip fragments/hash anchors",
+			input:    "https://example.com/page?a=1#section-heading",
+			expected: "https://example.com/page?a=1",
+			hasError: false,
+		},
 	}
 
 	for _, tt := range tests {
