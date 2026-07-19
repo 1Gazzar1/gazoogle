@@ -12,7 +12,7 @@ import (
 )
 
 var DB *redis.Client
-var ctx context.Context = context.Background()
+var Ctx context.Context = context.Background()
 
 func InitRedis() {
 	DB_URL := util.GetSafeEnv("REDIS_DB")
@@ -22,7 +22,7 @@ func InitRedis() {
 		DB:       0,
 	})
 
-	_, err := DB.Ping(ctx).Result()
+	_, err := DB.Ping(Ctx).Result()
 
 	if err != nil {
 		log.Fatalf("couldn't connect to redis, err: %v", err)
@@ -32,7 +32,7 @@ func InitRedis() {
 
 func AddPageToPriorityQueue(normURL string) error {
 	// FIFO queue
-	_, err := DB.LPush(ctx, constants.PriorityQueue, normURL).Result()
+	_, err := DB.LPush(Ctx, constants.PriorityQueue, normURL).Result()
 	if err != nil {
 		return fmt.Errorf("failed to push url to priority queue: %v", err)
 	}
@@ -40,7 +40,7 @@ func AddPageToPriorityQueue(normURL string) error {
 	return nil
 }
 func PopPageFromPriorityQueue() (url string, err error) {
-	url, err = DB.RPop(ctx, constants.PriorityQueue).Result()
+	url, err = DB.RPop(Ctx, constants.PriorityQueue).Result()
 
 	if err != nil {
 		return "", err
@@ -50,7 +50,7 @@ func PopPageFromPriorityQueue() (url string, err error) {
 }
 
 func GetPriorityQueueLen() (int, error) {
-	val, err := DB.LLen(ctx, constants.PriorityQueue).Result()
+	val, err := DB.LLen(Ctx, constants.PriorityQueue).Result()
 
 	if err != nil {
 		return 0, fmt.Errorf("failed to get len of queue")
@@ -65,7 +65,7 @@ func AddPageToIndexerQueue(pageData util.PageData) error {
 	if err != nil {
 		return fmt.Errorf("Failed to marshal pageData, error: %v", err)
 	}
-	_, err = DB.LPush(ctx, constants.IndexerQueue, string(pageDataBytes)).Result()
+	_, err = DB.LPush(Ctx, constants.IndexerQueue, string(pageDataBytes)).Result()
 	if err != nil {
 		return fmt.Errorf("Failed to push pageData to Indexer queue, error: %v", err)
 	}
@@ -73,7 +73,7 @@ func AddPageToIndexerQueue(pageData util.PageData) error {
 	return nil
 }
 func GetIndexerQueueLen() (int, error) {
-	val, err := DB.LLen(ctx, constants.IndexerQueue).Result()
+	val, err := DB.LLen(Ctx, constants.IndexerQueue).Result()
 
 	if err != nil {
 		return 0, fmt.Errorf("failed to get len of queue")
@@ -81,7 +81,7 @@ func GetIndexerQueueLen() (int, error) {
 	return int(val), nil
 }
 func AddPageToSet(normURL string) error {
-	_, err := DB.SAdd(ctx, constants.PageSet, normURL).Result()
+	_, err := DB.SAdd(Ctx, constants.PageSet, normURL).Result()
 
 	if err != nil {
 		return fmt.Errorf("failed to add page to set, error: %v", err)
@@ -89,7 +89,7 @@ func AddPageToSet(normURL string) error {
 	return nil
 }
 func GetSetLen() (int, error) {
-	size, err := DB.SCard(ctx, constants.PageSet).Result()
+	size, err := DB.SCard(Ctx, constants.PageSet).Result()
 
 	if err != nil {
 		return 0, fmt.Errorf("failed to get set len, error: %v", err)
@@ -97,7 +97,7 @@ func GetSetLen() (int, error) {
 	return int(size), nil
 }
 func ExistsInPageSet(normURL string) (bool, error) {
-	exists, err := DB.SIsMember(ctx, constants.PageSet, normURL).Result()
+	exists, err := DB.SIsMember(Ctx, constants.PageSet, normURL).Result()
 	// this is a thing apparently when there's no key
 	if err == redis.Nil {
 		return false, nil
@@ -106,4 +106,14 @@ func ExistsInPageSet(normURL string) (bool, error) {
 		return false, fmt.Errorf("failed to get set len, error: %v", err)
 	}
 	return exists, nil
+}
+func DeleteKeyInPageSet(normUrl string) error {
+	deleted, err := DB.SRem(Ctx, constants.PageSet, normUrl).Result()
+	if err != nil {
+		return fmt.Errorf("failed to get delete set key, error: %v", err)
+	}
+	if deleted != 1 {
+		return fmt.Errorf("failed to get delete set key, error: %v", err)
+	}
+	return nil
 }

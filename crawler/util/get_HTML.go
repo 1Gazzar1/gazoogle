@@ -5,11 +5,14 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"time"
 )
 
 func getHTML(url string) (HTML string, err error) {
 
-	client := &http.Client{}
+	client := &http.Client{
+		Timeout: 15 * time.Second,
+	}
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return "", fmt.Errorf("failed to build request,error %v", err)

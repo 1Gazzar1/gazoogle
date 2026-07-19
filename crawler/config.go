@@ -41,6 +41,15 @@ func claimPage(URL string) (exists bool, err error) {
 	return false, nil
 
 }
+func unClaimPage(URL string) {
+	if err := db.DeleteKeyInPageSet(URL); err != nil {
+		log.Printf("CRITICAL: failed to unclaim %v after failure, leaked: %v", URL, err)
+	}
+	err := db.AddPageToPriorityQueue(URL)
+	if err != nil {
+		log.Printf("Failed to add page while crawling: %v", err)
+	}
+}
 func worker(wg *sync.WaitGroup, limit int) {
 	defer wg.Done()
 	for {
@@ -110,13 +119,13 @@ func crawlOnePage(URL string, internal bool) {
 	pageData, err := util.BuildPageData(URL)
 	if err != nil {
 		fmt.Printf("Failed to build page with url: %v, error: %v", URL, err)
-		// TODO:make a function to un-claim a page if this fails
+		unClaimPage(URL)
 		return
 	}
 	// pass the pageData to redis here
 	err = db.AddPageToIndexerQueue(pageData)
 	if err != nil {
-		// TODO:make a function to un-claim a page if this fails
+		unClaimPage(URL)
 		log.Printf("error while crawling: %v", err)
 		return
 	}
@@ -124,7 +133,7 @@ func crawlOnePage(URL string, internal bool) {
 	no, err := db.GetSetLen()
 	if err != nil {
 		//skip
-		// TODO:make a function to un-claim a page if this fails
+		unClaimPage(URL)
 		log.Printf("error while crawling: %v", err)
 		return
 	}

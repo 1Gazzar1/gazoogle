@@ -25,4 +25,5 @@ func main() {
 	db.AddPageToPriorityQueue(constants.StartPage)
 
 	wg.Wait()
+
 }
