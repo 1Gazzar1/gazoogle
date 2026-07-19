@@ -8,6 +8,24 @@ import (
 	"github.com/PuerkitoBio/goquery"
 )
 
+var blockedDomains = map[string]struct{}{
+	"google.com":               {},
+	"www.google.com":           {},
+	"bing.com":                 {},
+	"duckduckgo.com":           {},
+	"facebook.com":             {},
+	"instagram.com":            {},
+	"twitter.com":              {},
+	"x.com":                    {},
+	"tiktok.com":               {},
+	"linkedin.com":             {},
+	"donate.wikimedia.org":     {},
+	"foundation.wikimedia.org": {},
+	"www.wikidata.org":         {},
+	"www.mediawiki.org":        {},
+	"stats.wikimedia.org":      {},
+	"commons.wikimedia.org":    {},
+}
 var bannedNamespaces = map[string]bool{
 	"Talk":        true,
 	"User":        true,
@@ -84,6 +102,9 @@ func extractURLs(HTML string, baseURL *url.URL) (OutgoingLinks []string, err err
 		u = baseURL.ResolveReference(u)
 		// guard check to ignore some wiki sites
 		hostAndPath := u.Host + u.Path
+		if _, exists := blockedDomains[u.Hostname()]; exists {
+			return
+		}
 
 		if strings.Contains(u.Host, "wikipedia") {
 			// 1. Strictly enforce en.wikipedia.org/wiki/
