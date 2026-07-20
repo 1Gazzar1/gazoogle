@@ -14,8 +14,7 @@ import (
 var DB *redis.Client
 var Ctx context.Context = context.Background()
 
-func InitRedis() {
-	DB_URL := util.GetSafeEnv("REDIS_DB")
+func InitRedis(DB_URL string) {
 	DB = redis.NewClient(&redis.Options{
 		Addr:     DB_URL,
 		Password: "",
