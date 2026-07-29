@@ -12,10 +12,46 @@ import (
 	"github.com/pgvector/pgvector-go"
 )
 
+const createBlankPages = `-- name: CreateBlankPages :many
+INSERT INTO pages (url)
+SELECT unnest($1::text[])
+RETURNING id, url, title, heading, embedding, doc_length, crawled_at
+`
+
+// this one is made so when indexing a page, we first create blank pages to the forward links
+// to update the links, then later we update these pages
+func (q *Queries) CreateBlankPages(ctx context.Context, dollar_1 []string) ([]Page, error) {
+	rows, err := q.db.Query(ctx, createBlankPages, dollar_1)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Page
+	for rows.Next() {
+		var i Page
+		if err := rows.Scan(
+			&i.ID,
+			&i.Url,
+			&i.Title,
+			&i.Heading,
+			&i.Embedding,
+			&i.DocLength,
+			&i.CrawledAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const createPage = `-- name: CreatePage :one
 INSERT INTO pages( url,heading,title,embedding) 
 VALUES($1,$2,$3,$4)
-RETURNING id, url, title, heading, embedding, crawled_at
+RETURNING id, url, title, heading, embedding, doc_length, crawled_at
 `
 
 type CreatePageParams struct {
@@ -39,13 +75,14 @@ func (q *Queries) CreatePage(ctx context.Context, arg CreatePageParams) (Page, e
 		&i.Title,
 		&i.Heading,
 		&i.Embedding,
+		&i.DocLength,
 		&i.CrawledAt,
 	)
 	return i, err
 }
 
 const getAllPages = `-- name: GetAllPages :many
-SELECT id, url, title, heading, embedding, crawled_at FROM pages
+SELECT id, url, title, heading, embedding, doc_length, crawled_at FROM pages
 `
 
 func (q *Queries) GetAllPages(ctx context.Context) ([]Page, error) {
@@ -63,6 +100,7 @@ func (q *Queries) GetAllPages(ctx context.Context) ([]Page, error) {
 			&i.Title,
 			&i.Heading,
 			&i.Embedding,
+			&i.DocLength,
 			&i.CrawledAt,
 		); err != nil {
 			return nil, err
@@ -76,7 +114,7 @@ func (q *Queries) GetAllPages(ctx context.Context) ([]Page, error) {
 }
 
 const getPageById = `-- name: GetPageById :one
-SELECT id, url, title, heading, embedding, crawled_at 
+SELECT id, url, title, heading, embedding, doc_length, crawled_at 
 FROM pages 
 WHERE (id = $1)
 `
@@ -90,13 +128,14 @@ func (q *Queries) GetPageById(ctx context.Context, id int32) (Page, error) {
 		&i.Title,
 		&i.Heading,
 		&i.Embedding,
+		&i.DocLength,
 		&i.CrawledAt,
 	)
 	return i, err
 }
 
 const getPageByUrl = `-- name: GetPageByUrl :one
-SELECT id, url, title, heading, embedding, crawled_at 
+SELECT id, url, title, heading, embedding, doc_length, crawled_at 
 FROM pages 
 WHERE (url = $1)
 `
@@ -110,6 +149,7 @@ func (q *Queries) GetPageByUrl(ctx context.Context, url string) (Page, error) {
 		&i.Title,
 		&i.Heading,
 		&i.Embedding,
+		&i.DocLength,
 		&i.CrawledAt,
 	)
 	return i, err
@@ -119,7 +159,7 @@ const updatePageByURL = `-- name: UpdatePageByURL :one
 UPDATE pages 
 SET title = $2,heading = $3,embedding = $4
 WHERE (url = $1)
-RETURNING id, url, title, heading, embedding, crawled_at
+RETURNING id, url, title, heading, embedding, doc_length, crawled_at
 `
 
 type UpdatePageByURLParams struct {
@@ -143,6 +183,7 @@ func (q *Queries) UpdatePageByURL(ctx context.Context, arg UpdatePageByURLParams
 		&i.Title,
 		&i.Heading,
 		&i.Embedding,
+		&i.DocLength,
 		&i.CrawledAt,
 	)
 	return i, err

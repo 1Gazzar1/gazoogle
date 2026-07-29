@@ -49,14 +49,16 @@ func CleanTokens(tokens []string) (output []string) {
 
 // TODO: refactor this so we only parse the HTML once, instead of constatns.TagWeights N times.
 
-func BuildPageWithWeightTF(HTML string) (output map[string]float32, err error) {
+func BuildPageWithWeightTF(HTML string) (tokens map[string][]string, output map[string]float32, err error) {
+	tokens = make(map[string][]string)
 	output = make(map[string]float32)
 	for tag, weight := range constants.TagWeights {
-		tokens, err := ExtractAllTextFromTag(HTML, tag)
+		_tokens, err := ExtractAllTextFromTag(HTML, tag)
+		tokens[tag] = _tokens
 		if err != nil {
-			return output, fmt.Errorf("Failed to extract tokens: %v", err)
+			return tokens, output, fmt.Errorf("Failed to extract tokens: %v", err)
 		}
-		cleanTokens := CleanTokens(tokens)
+		cleanTokens := CleanTokens(_tokens)
 
 		for _, word := range cleanTokens {
 			if _, exists := output[word]; exists {
@@ -67,6 +69,6 @@ func BuildPageWithWeightTF(HTML string) (output map[string]float32, err error) {
 
 		}
 	}
-	return output, nil
+	return tokens, output, nil
 
 }

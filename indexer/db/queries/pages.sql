@@ -17,11 +17,12 @@ INSERT INTO pages( url,heading,title,embedding)
 VALUES($1,$2,$3,$4)
 RETURNING *; 
 
--- name: CreateBlankPages :copyfrom 
+-- name: CreateBlankPages :many
 -- this one is made so when indexing a page, we first create blank pages to the forward links 
 -- to update the links, then later we update these pages 
-INSERT INTO pages( url) 
-VALUES($1); 
+INSERT INTO pages (url)
+SELECT unnest($1::text[])
+RETURNING *;
 
 -- name: UpdatePageByURL :one 
 UPDATE pages 

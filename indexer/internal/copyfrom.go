@@ -9,13 +9,13 @@ import (
 	"context"
 )
 
-// iteratorForCreateBlankPages implements pgx.CopyFromSource.
-type iteratorForCreateBlankPages struct {
-	rows                 []string
+// iteratorForCreateImages implements pgx.CopyFromSource.
+type iteratorForCreateImages struct {
+	rows                 []CreateImagesParams
 	skippedFirstNextCall bool
 }
 
-func (r *iteratorForCreateBlankPages) Next() bool {
+func (r *iteratorForCreateImages) Next() bool {
 	if len(r.rows) == 0 {
 		return false
 	}
@@ -27,20 +27,54 @@ func (r *iteratorForCreateBlankPages) Next() bool {
 	return len(r.rows) > 0
 }
 
-func (r iteratorForCreateBlankPages) Values() ([]interface{}, error) {
+func (r iteratorForCreateImages) Values() ([]interface{}, error) {
 	return []interface{}{
-		r.rows[0],
+		r.rows[0].Url,
+		r.rows[0].AltText,
+		r.rows[0].Embedding,
 	}, nil
 }
 
-func (r iteratorForCreateBlankPages) Err() error {
+func (r iteratorForCreateImages) Err() error {
 	return nil
 }
 
-// this one is made so when indexing a page, we first create blank pages to the forward links
-// to update the links, then later we update these pages
-func (q *Queries) CreateBlankPages(ctx context.Context, url []string) (int64, error) {
-	return q.db.CopyFrom(ctx, []string{"pages"}, []string{"url"}, &iteratorForCreateBlankPages{rows: url})
+func (q *Queries) CreateImages(ctx context.Context, arg []CreateImagesParams) (int64, error) {
+	return q.db.CopyFrom(ctx, []string{"images"}, []string{"url", "alt_text", "embedding"}, &iteratorForCreateImages{rows: arg})
+}
+
+// iteratorForCreatePostings implements pgx.CopyFromSource.
+type iteratorForCreatePostings struct {
+	rows                 []CreatePostingsParams
+	skippedFirstNextCall bool
+}
+
+func (r *iteratorForCreatePostings) Next() bool {
+	if len(r.rows) == 0 {
+		return false
+	}
+	if !r.skippedFirstNextCall {
+		r.skippedFirstNextCall = true
+		return true
+	}
+	r.rows = r.rows[1:]
+	return len(r.rows) > 0
+}
+
+func (r iteratorForCreatePostings) Values() ([]interface{}, error) {
+	return []interface{}{
+		r.rows[0].Word,
+		r.rows[0].PageID,
+		r.rows[0].Tf,
+	}, nil
+}
+
+func (r iteratorForCreatePostings) Err() error {
+	return nil
+}
+
+func (q *Queries) CreatePostings(ctx context.Context, arg []CreatePostingsParams) (int64, error) {
+	return q.db.CopyFrom(ctx, []string{"postings"}, []string{"word", "page_id", "tf"}, &iteratorForCreatePostings{rows: arg})
 }
 
 // iteratorForInsertLinks implements pgx.CopyFromSource.

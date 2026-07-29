@@ -1,3 +1,4 @@
+-- this schema was changed like 10 times :<
 CREATE EXTENSION IF NOT EXISTS vector;
 
 
@@ -17,7 +18,7 @@ CREATE TABLE IF NOT EXISTS pages (
 -- idf is the inverse df, it represents how importatnt a word is, so high df means common, low df means rare
 CREATE TABLE IF NOT EXISTS terms ( 
   term TEXT NOT NULL PRIMARY KEY, 
-  df INT NOT NULL DEFAULT 0, 
+  df INT NOT NULL DEFAULT 1, 
   idf REAL NOT NULL DEFAULT 0
 );
 -- this table is the relation between a page and each word it has 
@@ -46,4 +47,13 @@ CREATE TABLE IF NOT EXISTS links (
   from_page_id INT references pages(id), 
   to_page_id INT references pages(id),
   PRIMARY KEY(from_page_id,to_page_id)
-) 
+);
+
+
+-- metadata table 
+-- i don't know why i haven't thought of something like this before 
+-- will hold stuff that i don't want to store in memory, like total_doc_len
+CREATE TABLE IF NOT EXISTS metadata ( 
+  KEY TEXT NOT NULL, 
+  VALUE TEXT
+)

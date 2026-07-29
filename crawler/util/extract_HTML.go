@@ -46,7 +46,7 @@ type PageData struct {
 	HTML          string            `json:"HTML"`
 	Title         string            `json:"Title"`
 	OutgoingLinks []string          `json:"OutgoingLinks"` // basically the urls inside a page
-	ImageURLs     map[string]string `json:"ImageURLs"`     // a map where the key is the url and val is the 'alt' text
+	ImageMap     map[string]string `json:"ImageMap"`     // a map where the key is the url and val is the 'alt' text
 }
 
 func BuildPageData(URL string) (pageData PageData, err error) {
@@ -79,7 +79,7 @@ func BuildPageData(URL string) (pageData PageData, err error) {
 		Title:         title,
 		HTML:          HTML,
 		OutgoingLinks: urls,
-		ImageURLs:     imgs,
+		ImageMap:     imgs,
 	}, nil
 }
 
@@ -131,12 +131,12 @@ func extractURLs(HTML string, baseURL *url.URL) (OutgoingLinks []string, err err
 	})
 	return OutgoingLinks, nil
 }
-func extractImages(HTML string, baseURL *url.URL) (ImageURLs map[string]string, err error) {
+func extractImages(HTML string, baseURL *url.URL) (ImageMap map[string]string, err error) {
 	doc, err := getDoc(HTML)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse HTML %v", err)
 	}
-	ImageURLs = make(map[string]string)
+	ImageMap = make(map[string]string)
 	doc.Find("img").Each(func(i int, s *goquery.Selection) {
 		// if the img tag doesn't have both 'src' & 'alt' then return
 		src, srcExists := s.Attr("src")
@@ -151,9 +151,9 @@ func extractImages(HTML string, baseURL *url.URL) (ImageURLs map[string]string, 
 
 		u = baseURL.ResolveReference(u)
 
-		ImageURLs[u.String()] = altText
+		ImageMap[u.String()] = altText
 	})
-	return ImageURLs, nil
+	return ImageMap, nil
 }
 func extractTitle(HTML string) (title string, err error) {
 	doc, err := getDoc(HTML)

@@ -10,37 +10,36 @@ import (
 )
 
 const createPosting = `-- name: CreatePosting :one
-INSERT INTO postings(word,page_id,tf,tf_idf) VALUES($1,$2,$3,$4) 
-RETURNING id, word, page_id, tf, tf_idf
+INSERT INTO postings(word,page_id,tf) VALUES($1,$2,$3) 
+RETURNING id, word, page_id, tf
 `
 
 type CreatePostingParams struct {
 	Word   string
 	PageID int32
 	Tf     float32
-	TfIdf  float32
 }
 
 func (q *Queries) CreatePosting(ctx context.Context, arg CreatePostingParams) (Posting, error) {
-	row := q.db.QueryRow(ctx, createPosting,
-		arg.Word,
-		arg.PageID,
-		arg.Tf,
-		arg.TfIdf,
-	)
+	row := q.db.QueryRow(ctx, createPosting, arg.Word, arg.PageID, arg.Tf)
 	var i Posting
 	err := row.Scan(
 		&i.ID,
 		&i.Word,
 		&i.PageID,
 		&i.Tf,
-		&i.TfIdf,
 	)
 	return i, err
 }
 
+type CreatePostingsParams struct {
+	Word   string
+	PageID int32
+	Tf     float32
+}
+
 const getAllPostings = `-- name: GetAllPostings :many
-SELECT id, word, page_id, tf, tf_idf FROM postings
+SELECT id, word, page_id, tf FROM postings
 `
 
 func (q *Queries) GetAllPostings(ctx context.Context) ([]Posting, error) {
@@ -57,7 +56,6 @@ func (q *Queries) GetAllPostings(ctx context.Context) ([]Posting, error) {
 			&i.Word,
 			&i.PageID,
 			&i.Tf,
-			&i.TfIdf,
 		); err != nil {
 			return nil, err
 		}
@@ -70,7 +68,7 @@ func (q *Queries) GetAllPostings(ctx context.Context) ([]Posting, error) {
 }
 
 const getPostingById = `-- name: GetPostingById :one
-SELECT id, word, page_id, tf, tf_idf FROM postings 
+SELECT id, word, page_id, tf FROM postings 
 WHERE (id = $1)
 `
 
@@ -82,32 +80,6 @@ func (q *Queries) GetPostingById(ctx context.Context, id int32) (Posting, error)
 		&i.Word,
 		&i.PageID,
 		&i.Tf,
-		&i.TfIdf,
-	)
-	return i, err
-}
-
-const updateTfIdf = `-- name: UpdateTfIdf :one
-UPDATE postings 
-SET tf_idf = $2
-WHERE (id = $1)
-RETURNING id, word, page_id, tf, tf_idf
-`
-
-type UpdateTfIdfParams struct {
-	ID    int32
-	TfIdf float32
-}
-
-func (q *Queries) UpdateTfIdf(ctx context.Context, arg UpdateTfIdfParams) (Posting, error) {
-	row := q.db.QueryRow(ctx, updateTfIdf, arg.ID, arg.TfIdf)
-	var i Posting
-	err := row.Scan(
-		&i.ID,
-		&i.Word,
-		&i.PageID,
-		&i.Tf,
-		&i.TfIdf,
 	)
 	return i, err
 }

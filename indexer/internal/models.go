@@ -21,12 +21,18 @@ type Link struct {
 	ToPageID   int32
 }
 
+type Metadata struct {
+	Key   string
+	Value pgtype.Text
+}
+
 type Page struct {
 	ID        int32
 	Url       string
 	Title     pgtype.Text
 	Heading   pgtype.Text
 	Embedding pgvector.Vector
+	DocLength int32
 	CrawledAt pgtype.Timestamp
 }
 
@@ -35,5 +41,10 @@ type Posting struct {
 	Word   string
 	PageID int32
 	Tf     float32
-	TfIdf  float32
+}
+
+type Term struct {
+	Term string
+	Df   int32
+	Idf  float32
 }

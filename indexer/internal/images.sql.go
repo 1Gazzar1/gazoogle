@@ -34,6 +34,12 @@ func (q *Queries) CreateImage(ctx context.Context, arg CreateImageParams) (Image
 	return i, err
 }
 
+type CreateImagesParams struct {
+	Url       string
+	AltText   string
+	Embedding pgvector.Vector
+}
+
 const getAllImages = `-- name: GetAllImages :many
 SELECT id, alt_text, url, embedding FROM images
 `

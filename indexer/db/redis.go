@@ -17,7 +17,7 @@ type PageData struct {
 	HTML          string            `json:"HTML"`
 	Title         string            `json:"Title"`
 	OutgoingLinks []string          `json:"OutgoingLinks"` // basically the urls inside a page
-	ImageURLs     map[string]string `json:"ImageURLs"`     // a map where the key is the url and val is the 'alt' text
+	ImageMap     map[string]string `json:"ImageMap"`     // a map where the key is the url and val is the 'alt' text
 }
 
 func InitRedis(DB_URL string) {

@@ -7,11 +7,9 @@ WHERE (id = $1);
 
 
 -- name: CreatePosting :one 
-INSERT INTO postings(word,page_id,tf,tf_idf) VALUES($1,$2,$3,$4) 
+INSERT INTO postings(word,page_id,tf) VALUES($1,$2,$3) 
 RETURNING *;
 
--- name: UpdateTfIdf :one 
-UPDATE postings 
-SET tf_idf = $2
-WHERE (id = $1)
-RETURNING *;
+-- name: CreatePostings :copyfrom 
+INSERT INTO postings(word,page_id,tf) 
+VALUES($1,$2,$3); 

@@ -8,7 +8,7 @@ import (
 )
 
 func main() {
-	output, err := util.BuildPageWithWeightTF(`<!DOCTYPE html>
+	_, output, err := util.BuildPageWithWeightTF(`<!DOCTYPE html>
 <html>
 <head>
 <title>ULTRAKILL is a great game</title>
