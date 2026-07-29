@@ -7,20 +7,29 @@ CREATE TABLE IF NOT EXISTS pages (
     url TEXT NOT NULL UNIQUE,
     title TEXT,
     heading TEXT, 
-    embedding VECTOR(1556),
-    crawled_at TIMESTAMP default now()
+    embedding VECTOR(384),
+    doc_length INT NOT NULL, 
+    crawled_at TIMESTAMP DEFAULT now()
 );
 
--- TODO: might need to add a length param here to account for bm25
+-- term table (unique words)
+-- df here is document freq, or how many times did that term appear in a document 
+-- idf is the inverse df, it represents how importatnt a word is, so high df means common, low df means rare
+CREATE TABLE IF NOT EXISTS terms ( 
+  term TEXT NOT NULL PRIMARY KEY, 
+  df INT NOT NULL DEFAULT 0, 
+  idf REAL NOT NULL DEFAULT 0
+);
 -- this table is the relation between a page and each word it has 
 -- this serves as the inverted index
--- note: i could've extracted word into a 'term' table to make it more efficient, but like this browsing through the data and making queries is easier
 CREATE TABLE IF NOT EXISTS postings ( 
     id SERIAL PRIMARY KEY,
-    word TEXT NOT NULL, 
+    word TEXT NOT NULL REFERENCES terms(term), 
     page_id INT NOT NULL REFERENCES pages(id),
-    tf REAL NOT NULL, -- how many times did 'word' appear in 'page_id' 
-    tf_idf REAL NOT NULL, -- represents relationship between word and page: bigger number means word is more related, calculated tf * idf ( globally calculated per word) 
+    tf REAL NOT NULL, -- how many times did 'word' appear in 'page_id'
+    -- i had to remove tf_idf, because after recalculating the idf you'd have to pass through ALL the postings and 
+    -- update tf_idf, which is very expensive, so instead we'll update the terms table and cacluate tf_idf on the fly     
+    -- tf_idf REAL NOT NULL, -- represents relationship between word and page: bigger number means word is more related, calculated tf * idf ( globally calculated per word) 
     UNIQUE(word,page_id)
 );
 
@@ -29,7 +38,7 @@ CREATE TABLE IF NOT EXISTS images (
   id SERIAL PRIMARY KEY,
   alt_text TEXT NOT NULL,
   url TEXT NOT NULL, 
-  embedding VECTOR(1556) -- this is an embedding of the alt text and not the actual image 
+  embedding VECTOR(384) -- this is an embedding of the alt text and not the actual image 
 );
 
 -- this table represents the forward and backward links  
@@ -38,10 +47,3 @@ CREATE TABLE IF NOT EXISTS links (
   to_page_id INT references pages(id),
   PRIMARY KEY(from_page_id,to_page_id)
 ) 
-
-
-
-
-
-
-
