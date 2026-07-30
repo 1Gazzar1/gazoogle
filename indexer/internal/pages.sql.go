@@ -15,32 +15,25 @@ import (
 const createBlankPages = `-- name: CreateBlankPages :many
 INSERT INTO pages (url)
 SELECT unnest($1::text[])
-RETURNING id, url, title, heading, embedding, doc_length, crawled_at
+ON CONFLICT DO NOTHING
+RETURNING id
 `
 
 // this one is made so when indexing a page, we first create blank pages to the forward links
 // to update the links, then later we update these pages
-func (q *Queries) CreateBlankPages(ctx context.Context, dollar_1 []string) ([]Page, error) {
+func (q *Queries) CreateBlankPages(ctx context.Context, dollar_1 []string) ([]int32, error) {
 	rows, err := q.db.Query(ctx, createBlankPages, dollar_1)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Page
+	var items []int32
 	for rows.Next() {
-		var i Page
-		if err := rows.Scan(
-			&i.ID,
-			&i.Url,
-			&i.Title,
-			&i.Heading,
-			&i.Embedding,
-			&i.DocLength,
-			&i.CrawledAt,
-		); err != nil {
+		var id int32
+		if err := rows.Scan(&id); err != nil {
 			return nil, err
 		}
-		items = append(items, i)
+		items = append(items, id)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -49,10 +42,10 @@ func (q *Queries) CreateBlankPages(ctx context.Context, dollar_1 []string) ([]Pa
 }
 
 const createPage = `-- name: CreatePage :one
-INSERT INTO pages( url,heading,title,embedding) 
-VALUES($1,$2,$3,$4) 
+INSERT INTO pages( url,heading,title,embedding,doc_length) 
+VALUES($1,$2,$3,$4,$5) 
 ON CONFLICT (url) DO 
-UPDATE SET heading = $2, title = $3 , embedding = $4
+UPDATE SET heading = $2, title = $3 , embedding = $4, doc_length = $5
 RETURNING id, url, title, heading, embedding, doc_length, crawled_at
 `
 
@@ -61,6 +54,7 @@ type CreatePageParams struct {
 	Heading   pgtype.Text
 	Title     pgtype.Text
 	Embedding pgvector.Vector
+	DocLength pgtype.Int4
 }
 
 func (q *Queries) CreatePage(ctx context.Context, arg CreatePageParams) (Page, error) {
@@ -69,6 +63,7 @@ func (q *Queries) CreatePage(ctx context.Context, arg CreatePageParams) (Page, e
 		arg.Heading,
 		arg.Title,
 		arg.Embedding,
+		arg.DocLength,
 	)
 	var i Page
 	err := row.Scan(

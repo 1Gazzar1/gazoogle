@@ -13,10 +13,10 @@ WHERE (url = $1);
 SELECT * FROM pages; 
 
 -- name: CreatePage :one 
-INSERT INTO pages( url,heading,title,embedding) 
-VALUES($1,$2,$3,$4) 
+INSERT INTO pages( url,heading,title,embedding,doc_length) 
+VALUES($1,$2,$3,$4,$5) 
 ON CONFLICT (url) DO 
-UPDATE SET heading = $2, title = $3 , embedding = $4
+UPDATE SET heading = $2, title = $3 , embedding = $4, doc_length = $5
 RETURNING *; 
 
 -- name: CreateBlankPages :many
@@ -24,4 +24,5 @@ RETURNING *;
 -- to update the links, then later we update these pages 
 INSERT INTO pages (url)
 SELECT unnest($1::text[])
-RETURNING *;
+ON CONFLICT DO NOTHING
+RETURNING id;

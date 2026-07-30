@@ -9,26 +9,32 @@ import (
 	"context"
 )
 
+const getDocCount = `-- name: GetDocCount :one
+SELECT total_documents FROM metadata WHERE id = TRUE
+`
+
+func (q *Queries) GetDocCount(ctx context.Context) (int32, error) {
+	row := q.db.QueryRow(ctx, getDocCount)
+	var total_documents int32
+	err := row.Scan(&total_documents)
+	return total_documents, err
+}
+
 const updateDocCountAndAvgDocLength = `-- name: UpdateDocCountAndAvgDocLength :one
 INSERT INTO metadata (id, total_documents, avg_doc_length)
 VALUES (true, 1, $1)
 ON CONFLICT (id) DO UPDATE
 SET
-    total_documents = total_documents + 1,
+    total_documents = metadata.total_documents + 1,
     avg_doc_length = (
-        avg_doc_length * total_documents + $1
-    ) / (total_documents + 1)
-RETURNING id, total_documents, avg_doc_length, last_idf_update
+        metadata.avg_doc_length * metadata.total_documents + $1
+    ) / (metadata.total_documents + 1)
+RETURNING id, total_documents, avg_doc_length
 `
 
 func (q *Queries) UpdateDocCountAndAvgDocLength(ctx context.Context, avgDocLength float32) (Metadata, error) {
 	row := q.db.QueryRow(ctx, updateDocCountAndAvgDocLength, avgDocLength)
 	var i Metadata
-	err := row.Scan(
-		&i.ID,
-		&i.TotalDocuments,
-		&i.AvgDocLength,
-		&i.LastIdfUpdate,
-	)
+	err := row.Scan(&i.ID, &i.TotalDocuments, &i.AvgDocLength)
 	return i, err
 }

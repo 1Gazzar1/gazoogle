@@ -25,7 +25,6 @@ type Metadata struct {
 	ID             bool
 	TotalDocuments int32
 	AvgDocLength   float32
-	LastIdfUpdate  int32
 }
 
 type Page struct {
@@ -34,7 +33,7 @@ type Page struct {
 	Title     pgtype.Text
 	Heading   pgtype.Text
 	Embedding pgvector.Vector
-	DocLength int32
+	DocLength pgtype.Int4
 	CrawledAt pgtype.Timestamp
 }
 

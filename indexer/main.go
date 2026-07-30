@@ -1,35 +1,55 @@
 package main
 
 import (
+	"context"
 	"log"
+	"os"
+	"sync"
 
-	"github.com/1gazzar1/gazoogle/indexer/util"
+	"github.com/1gazzar1/gazoogle/indexer/constants"
+	"github.com/1gazzar1/gazoogle/indexer/db"
+	"github.com/1gazzar1/gazoogle/indexer/internal"
 	_ "github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/joho/godotenv"
 )
 
-func main() {
-	_, output, err := util.BuildPageWithWeightTF(`<!DOCTYPE html>
-<html>
-<head>
-<title>ULTRAKILL is a great game</title>
-</head>
-<body>
-
-<h1>My First     Heading</h1>
-<h2>My 4th Heading</h2>
-<h1>My 2nd   Heading</h1>
-<h1>My 3rd   Heading</h1>
-<h1>My    67th   H  eading</h1>
-<p>My first paragraph, how are we doing right now ? </p>
-<p>I'm Going TO ULTRAKILL YOU</p>
-<p>ULTRAKILL YOURSELF</p>
-
-</body>
-</html>
-
-`)
-	if err != nil {
-		log.Fatal("error :<", err)
+func GetSafeEnv(env string) string {
+	val := os.Getenv(env)
+	if val == "" {
+		log.Fatalf("Failed to load env var with name: %v", env)
 	}
-	log.Println(output, len(output))
+	return val
+}
+
+func main() {
+	godotenv.Load()
+
+	REDIS := GetSafeEnv("REDIS_DB")
+	POSTGRES := GetSafeEnv("POSTGRES_DB")
+
+	db.InitRedis(REDIS)
+
+	ctx := context.Background()
+	conn, err := pgxpool.New(ctx, POSTGRES)
+	if err != nil {
+		log.Fatalf("failed to connect to postgres: %v", err)
+	}
+	schema, err := os.ReadFile("./db/schema.sql")
+	if err != nil {
+		log.Fatalf("Failed to load the db schema")
+	}
+	_, err = conn.Exec(ctx, string(schema))
+	if err != nil {
+		log.Fatalf("Failed to init postgres, err: %v", err)
+	}
+	wg := &sync.WaitGroup{}
+	queries := internal.New(conn)
+
+	for range constants.Workers {
+		wg.Add(1)
+		go worker(wg, conn, queries, ctx)
+	}
+	wg.Wait()
+
 }

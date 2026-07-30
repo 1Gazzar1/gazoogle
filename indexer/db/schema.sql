@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS pages (
     title TEXT,
     heading TEXT, 
     embedding VECTOR(384),
-    doc_length INT NOT NULL, 
+    doc_length INT DEFAULT 0, 
     crawled_at TIMESTAMP DEFAULT now()
 );
 
@@ -53,9 +53,11 @@ CREATE TABLE IF NOT EXISTS links (
 -- metadata table 
 -- i don't know why i haven't thought of something like this before 
 -- will hold stuff that i don't want to store in memory, like total_doc_len
-CREATE TABLE metadata (
+CREATE TABLE IF NOT EXISTS metadata (
     id BOOLEAN PRIMARY KEY DEFAULT TRUE,
     total_documents INT NOT NULL DEFAULT 0,
-    avg_doc_length REAL NOT NULL DEFAULT 0,
-    last_idf_update INT NOT NULL DEFAULT now()
+    avg_doc_length REAL NOT NULL DEFAULT 0
 );
+
+INSERT INTO metadata(id,total_documents,avg_doc_length) VALUES(TRUE,0,0)
+ON CONFLICT (id) DO NOTHING;

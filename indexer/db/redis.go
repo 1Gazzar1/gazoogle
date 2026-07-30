@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/1gazzar1/gazoogle/indexer/constants"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -17,7 +18,7 @@ type PageData struct {
 	HTML          string            `json:"HTML"`
 	Title         string            `json:"Title"`
 	OutgoingLinks []string          `json:"OutgoingLinks"` // basically the urls inside a page
-	ImageMap     map[string]string `json:"ImageMap"`     // a map where the key is the url and val is the 'alt' text
+	ImageMap      map[string]string `json:"ImageMap"`      // a map where the key is the url and val is the 'alt' text
 }
 
 func InitRedis(DB_URL string) {
@@ -40,13 +41,25 @@ const IndexerQueue = "indexer.queue"
 func GetNextPageData() (pageData PageData, err error) {
 	pageDataItem, err := DB.RPop(Ctx, IndexerQueue).Result()
 	if err != nil {
-		return PageData{}, fmt.Errorf("Failed to retreive pageData from redis: %v", err)
+		return PageData{}, fmt.Errorf("Failed to retreive pageData from redis: %w", err)
 	}
 
 	err = json.Unmarshal([]byte(pageDataItem), &pageData)
 	if err != nil {
 
-		return PageData{}, fmt.Errorf("Failed to unmarshal object to pageData: %v", err)
+		return PageData{}, fmt.Errorf("Failed to unmarshal object to pageData: %w", err)
 	}
 	return pageData, nil
+}
+func PushPageBackToRedis(pd PageData) (err error) {
+
+	pageDataBytes, err := json.Marshal(pd)
+	if err != nil {
+		return fmt.Errorf("Failed to marshal pageData, error: %v", err)
+	}
+	_, err = DB.LPush(Ctx, constants.IndexerQueue, string(pageDataBytes)).Result()
+	if err != nil {
+		return fmt.Errorf("Failed to push pageData to Indexer queue, error: %v", err)
+	}
+	return nil
 }
