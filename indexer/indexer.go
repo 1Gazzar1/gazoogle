@@ -20,13 +20,13 @@ func worker(ch chan struct{}, pgDb internal.Queries, ctx context.Context) {
 func indexPage(pgDb internal.Queries, ctx context.Context) {
 	pd, err := db.GetNextPageData()
 	if err != nil {
-		log.Println("failed to pop page from indexer queue: ", err)
+		log.Printf("failed to pop page from indexer queue: %v", err)
 		return
 	}
 
 	tokens, output, err := util.BuildPageWithWeightTF(pd.HTML)
 	if err != nil {
-		log.Println("failed to build/tokenize page: ", err)
+		log.Printf("failed to build/tokenize page: %v", err)
 		return
 	}
 	headings := util.UnTokenizeText(tokens["h1"], tokens["h2"])
@@ -34,16 +34,11 @@ func indexPage(pgDb internal.Queries, ctx context.Context) {
 	// TODO: make embedding here
 	var embedding pgvector.Vector
 
-	// we will assume that the page was already created before by another worker by CreateBlankPages
-	// if it makes an error then just create a new page (usually will happen on first page poped by a worker)
-	page, err := pgDb.UpdatePageByURL(ctx, internal.UpdatePageByURLParams{Url: pd.URL, Heading: pgtype.Text{String: headings, Valid: true}, Title: pgtype.Text{String: pd.Title, Valid: true}, Embedding: embedding})
+	// if it there's an error creating the page it will update it.
+	page, err := pgDb.CreatePage(ctx, internal.CreatePageParams{Url: pd.URL, Heading: pgtype.Text{String: headings, Valid: true}, Title: pgtype.Text{String: pd.Title, Valid: true}, Embedding: embedding})
 	if err != nil {
-		log.Println("failed to update page, creating a new one, url: %v, err: %v", pd.URL, err)
-		page, err = pgDb.CreatePage(ctx, internal.CreatePageParams{Url: pd.URL, Heading: pgtype.Text{String: headings, Valid: true}, Title: pgtype.Text{String: pd.Title, Valid: true}, Embedding: embedding})
-		if err != nil {
-			log.Println("Failed to create page, after trying to update,err: %v", err)
-			return
-		}
+		log.Printf("Failed to create page, after trying to update,err: %v", err)
+		return
 	}
 	var terms []string
 	for term, _ := range output {
@@ -52,7 +47,7 @@ func indexPage(pgDb internal.Queries, ctx context.Context) {
 	// this creates terms if they don't exist, increments df by 1 if they do
 	_, err = pgDb.CreateTerms(ctx, terms)
 	if err != nil {
-		log.Println("Failed to create/update terms: %v", err)
+		log.Printf("Failed to create/update terms: %v", err)
 		return
 	}
 	var postings []internal.CreatePostingsParams
@@ -61,14 +56,14 @@ func indexPage(pgDb internal.Queries, ctx context.Context) {
 	}
 	_, err = pgDb.CreatePostings(ctx, postings)
 	if err != nil {
-		log.Println("Failed to create postings: %v", err)
+		log.Printf("Failed to create postings: %v", err)
 		return
 	}
 
 	// we do this now so the updating links doesn't crash
 	blankPages, err := pgDb.CreateBlankPages(ctx, pd.OutgoingLinks)
 	if err != nil {
-		log.Println("failed to create pages in bulk: ", err)
+		log.Printf("failed to create pages in bulk: %v", err)
 	}
 
 	var linkObj []internal.InsertLinksParams
@@ -77,16 +72,26 @@ func indexPage(pgDb internal.Queries, ctx context.Context) {
 	}
 	_, err = pgDb.InsertLinks(ctx, linkObj)
 	if err != nil {
-		log.Println("Couldn't update links,err: ", err)
+		log.Printf("Couldn't update links,err: %v", err)
+		return
+	}
+	// now we update the metadata
+	_, err = pgDb.UpdateDocCountAndAvgDocLength(ctx, float32(len(tokens)))
+	if err != nil {
+		log.Printf("Failed to update metadata: %v", err)
 		return
 	}
 
+	// image stuff here
 	var images []internal.CreateImagesParams
 	for imgURL, altText := range pd.ImageMap {
 		// TODO: do image alt text embedding here
 		var embedding pgvector.Vector
 		images = append(images, internal.CreateImagesParams{Url: imgURL, AltText: altText, Embedding: embedding})
 	}
-	// images part
-	pgDb.CreateImages(ctx, images)
+	_, err = pgDb.CreateImages(ctx, images)
+	if err != nil {
+		log.Printf("Failed to create images, err: %v", err)
+		return
+	}
 }

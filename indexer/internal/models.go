@@ -22,8 +22,10 @@ type Link struct {
 }
 
 type Metadata struct {
-	Key   string
-	Value pgtype.Text
+	ID             bool
+	TotalDocuments int32
+	AvgDocLength   float32
+	LastIdfUpdate  int32
 }
 
 type Page struct {
@@ -46,5 +48,4 @@ type Posting struct {
 type Term struct {
 	Term string
 	Df   int32
-	Idf  float32
 }

@@ -14,7 +14,9 @@ SELECT * FROM pages;
 
 -- name: CreatePage :one 
 INSERT INTO pages( url,heading,title,embedding) 
-VALUES($1,$2,$3,$4)
+VALUES($1,$2,$3,$4) 
+ON CONFLICT (url) DO 
+UPDATE SET heading = $2, title = $3 , embedding = $4
 RETURNING *; 
 
 -- name: CreateBlankPages :many
@@ -23,13 +25,3 @@ RETURNING *;
 INSERT INTO pages (url)
 SELECT unnest($1::text[])
 RETURNING *;
-
--- name: UpdatePageByURL :one 
-UPDATE pages 
-SET title = $2,heading = $3,embedding = $4
-WHERE (url = $1)
-RETURNING *;
-
- 
-
-

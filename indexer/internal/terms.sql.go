@@ -14,7 +14,7 @@ INSERT INTO terms (term)
 SELECT unnest($1::text[])
 ON CONFLICT (term) DO 
 UPDATE SET df = terms.df + 1
-RETURNING term, df, idf
+RETURNING term, df
 `
 
 func (q *Queries) CreateTerms(ctx context.Context, dollar_1 []string) ([]Term, error) {
@@ -26,7 +26,7 @@ func (q *Queries) CreateTerms(ctx context.Context, dollar_1 []string) ([]Term, e
 	var items []Term
 	for rows.Next() {
 		var i Term
-		if err := rows.Scan(&i.Term, &i.Df, &i.Idf); err != nil {
+		if err := rows.Scan(&i.Term, &i.Df); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

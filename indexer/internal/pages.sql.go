@@ -50,7 +50,9 @@ func (q *Queries) CreateBlankPages(ctx context.Context, dollar_1 []string) ([]Pa
 
 const createPage = `-- name: CreatePage :one
 INSERT INTO pages( url,heading,title,embedding) 
-VALUES($1,$2,$3,$4)
+VALUES($1,$2,$3,$4) 
+ON CONFLICT (url) DO 
+UPDATE SET heading = $2, title = $3 , embedding = $4
 RETURNING id, url, title, heading, embedding, doc_length, crawled_at
 `
 
@@ -142,40 +144,6 @@ WHERE (url = $1)
 
 func (q *Queries) GetPageByUrl(ctx context.Context, url string) (Page, error) {
 	row := q.db.QueryRow(ctx, getPageByUrl, url)
-	var i Page
-	err := row.Scan(
-		&i.ID,
-		&i.Url,
-		&i.Title,
-		&i.Heading,
-		&i.Embedding,
-		&i.DocLength,
-		&i.CrawledAt,
-	)
-	return i, err
-}
-
-const updatePageByURL = `-- name: UpdatePageByURL :one
-UPDATE pages 
-SET title = $2,heading = $3,embedding = $4
-WHERE (url = $1)
-RETURNING id, url, title, heading, embedding, doc_length, crawled_at
-`
-
-type UpdatePageByURLParams struct {
-	Url       string
-	Title     pgtype.Text
-	Heading   pgtype.Text
-	Embedding pgvector.Vector
-}
-
-func (q *Queries) UpdatePageByURL(ctx context.Context, arg UpdatePageByURLParams) (Page, error) {
-	row := q.db.QueryRow(ctx, updatePageByURL,
-		arg.Url,
-		arg.Title,
-		arg.Heading,
-		arg.Embedding,
-	)
 	var i Page
 	err := row.Scan(
 		&i.ID,
