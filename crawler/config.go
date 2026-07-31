@@ -25,21 +25,32 @@ import (
 //		return true, len(cnf.pageSet)
 //	}
 func claimPage(URL string) (exists bool, err error) {
-	exists, err = db.ExistsInPageSet(URL)
-	if err != nil {
-		return true, err
-	}
-	if exists {
-		return true, nil
-	}
-	// if page doesn't exist, then claim it by adding it to the set first
-	// that way other goroutines would return early
-	err = db.AddPageToSet(URL)
-	if err != nil {
-		return true, err
-	}
-	return false, nil
 
+	// exists, err = db.ExistsInPageSet(URL)
+	// if err != nil {
+	// 	return true, err
+	// }
+	// if exists {
+	// 	return true, nil
+	// }
+	// // if page doesn't exist, then claim it by adding it to the set first
+	// // that way other goroutines would return early
+	// err = db.AddPageToSet(URL)
+	// if err != nil {
+	// 	return true, err
+	// }
+	// return false, nil
+	// ---- this approach was a race condition so i replaced with the following
+	// we use the value return from addPageSet (0 or 1) to determine whether it was added or not
+	// because only 1 command can be made at a time (redis is single threaded)
+	claimed, err := db.AddPageToSet(URL)
+	if err != nil {
+		return true, err
+	}
+	if !claimed {
+		return false, nil
+	}
+	return true, nil // exists=true means someone else already has it
 }
 func unClaimPage(URL string) {
 	if err := db.DeleteKeyInPageSet(URL); err != nil {

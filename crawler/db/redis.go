@@ -79,13 +79,14 @@ func GetIndexerQueueLen() (int, error) {
 	}
 	return int(val), nil
 }
-func AddPageToSet(normURL string) error {
-	_, err := DB.SAdd(Ctx, constants.PageSet, normURL).Result()
 
+// AddPageToSet now tells you whether it was actually new
+func AddPageToSet(normURL string) (claimed bool, err error) {
+	added, err := DB.SAdd(Ctx, constants.PageSet, normURL).Result()
 	if err != nil {
-		return fmt.Errorf("failed to add page to set, error: %v", err)
+		return false, fmt.Errorf("failed to claim page, error: %v", err)
 	}
-	return nil
+	return added == 1, nil // true if we were first to add it
 }
 func GetSetLen() (int, error) {
 	size, err := DB.SCard(Ctx, constants.PageSet).Result()
