@@ -6,6 +6,8 @@ import (
 	"os"
 	"sync"
 
+	_ "embed"
+
 	"github.com/1gazzar1/gazoogle/indexer/constants"
 	"github.com/1gazzar1/gazoogle/indexer/db"
 	"github.com/1gazzar1/gazoogle/indexer/internal"
@@ -15,6 +17,11 @@ import (
 	"github.com/joho/godotenv"
 	pgvex "github.com/pgvector/pgvector-go/pgx"
 )
+
+// this is a cool feature where you can embed a file into a variable
+//
+//go:embed db/schema.sql
+var schema string
 
 func GetSafeEnv(env string) string {
 	val := os.Getenv(env)
@@ -33,16 +40,10 @@ func main() {
 	ctx := context.Background()
 
 	db.InitRedis(REDIS)
+	initDatabaseSchema(POSTGRES, ctx)
+
 	pool := connectToPg(POSTGRES, ctx)
 
-	schema, err := os.ReadFile("./db/schema.sql")
-	if err != nil {
-		log.Fatalf("Failed to load the db schema")
-	}
-	_, err = pool.Exec(ctx, string(schema))
-	if err != nil {
-		log.Fatalf("Failed to init postgres, err: %v", err)
-	}
 	wg := &sync.WaitGroup{}
 	queries := internal.New(pool)
 
@@ -53,7 +54,19 @@ func main() {
 	wg.Wait()
 
 }
+func initDatabaseSchema(connectionString string, ctx context.Context) {
+	conn, err := pgx.Connect(ctx, connectionString)
+	if err != nil {
+		log.Fatalf("failed to open initial postgres connection: %v", err)
+	}
+	defer conn.Close(ctx)
 
+	log.Println("Initializing database schema...")
+	if _, err := conn.Exec(ctx, schema); err != nil {
+		log.Fatalf("Failed to init postgres schema, err: %v", err)
+	}
+	log.Println("Database schema initialized successfully.")
+}
 func connectToPg(connectionString string, ctx context.Context) *pgxpool.Pool {
 	// this part means that everytime we make a new connection in the pool
 	// we register the pgvector custom type (from the vector extension)

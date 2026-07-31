@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"sort"
 	"sync"
 	"time"
 
@@ -102,6 +103,9 @@ func indexPage(pd *db.PageData, pgDb *internal.Queries, ctx context.Context) err
 	for term := range output {
 		terms = append(terms, term)
 	}
+	// sort the terms to avoid deadlocks (locking rows)
+	sort.Strings(terms)
+
 	// this creates terms if they don't exist, increments df by 1 if they do
 	_, err = pgDb.CreateTerms(ctx, terms)
 	if err != nil {

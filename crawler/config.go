@@ -47,10 +47,8 @@ func claimPage(URL string) (exists bool, err error) {
 	if err != nil {
 		return true, err
 	}
-	if !claimed {
-		return false, nil
-	}
-	return true, nil // exists=true means someone else already has it
+
+	return !claimed, nil // exists=true means someone else already has it
 }
 func unClaimPage(URL string) {
 	if err := db.DeleteKeyInPageSet(URL); err != nil {
