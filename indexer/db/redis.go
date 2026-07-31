@@ -36,10 +36,9 @@ func InitRedis(DB_URL string) {
 	log.Println("connected to redis succesfully")
 }
 
-const IndexerQueue = "indexer.queue"
 
 func GetNextPageData() (pageData PageData, err error) {
-	pageDataItem, err := DB.RPop(Ctx, IndexerQueue).Result()
+	pageDataItem, err := DB.RPop(Ctx, constants.IndexerQueue).Result()
 	if err != nil {
 		return PageData{}, fmt.Errorf("Failed to retreive pageData from redis: %w", err)
 	}

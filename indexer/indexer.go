@@ -33,7 +33,7 @@ func worker(wg *sync.WaitGroup, pgDb *pgxpool.Pool, queries *internal.Queries, c
 		pd, err := db.GetNextPageData()
 		// this means that the queue is empty
 		if errors.Is(err, redis.Nil) {
-			log.Println("Indexer Queue is Empty, Pausing worker for 5 secs.")
+			log.Printf("Indexer Queue is Empty, Pausing worker for 5 secs, err: %v", err)
 			time.Sleep(5 * time.Second)
 			continue
 		}
@@ -63,7 +63,7 @@ func doWithTx(pd *db.PageData, db *pgxpool.Pool, ctx context.Context, queries *i
 
 	if err != nil {
 		// defer kicks in and rolls back
-		log.Println(err)
+		log.Printf("Something went wrong, rolling back changes.., err: %v", err)
 		return err
 	}
 	return tx.Commit(ctx)
@@ -84,15 +84,20 @@ func indexPage(pd *db.PageData, pgDb *internal.Queries, ctx context.Context) err
 	}
 	var embedding pgvector.Vector = pgvector.NewVector(l)
 
+	var docLength int
+	for _, token := range tokens {
+		docLength += len(token)
+	}
 	// if it there's an error creating the page it will update it.
 	page, err := pgDb.CreatePage(ctx, internal.CreatePageParams{Url: pd.URL,
 		Heading:   pgtype.Text{String: headings, Valid: true},
 		Title:     pgtype.Text{String: pd.Title, Valid: true},
 		Embedding: embedding,
-		DocLength: pgtype.Int4{Int32: int32(len(tokens))}})
+		DocLength: pgtype.Int4{Int32: int32(docLength)}})
 	if err != nil {
 		return fmt.Errorf("Failed to create page, err: %w", err)
 	}
+	log.Printf("Created Page: %v", page.Url)
 	var terms []string
 	for term := range output {
 		terms = append(terms, term)
@@ -110,6 +115,7 @@ func indexPage(pd *db.PageData, pgDb *internal.Queries, ctx context.Context) err
 	if err != nil {
 		return fmt.Errorf("Failed to create postings: %v", err)
 	}
+	log.Printf("Updated Terms & Created Postings for Page: %v", page.Url)
 
 	// we do this now so the updating links doesn't crash
 	ids, err := pgDb.CreateBlankPages(ctx, pd.OutgoingLinks)
@@ -125,11 +131,11 @@ func indexPage(pd *db.PageData, pgDb *internal.Queries, ctx context.Context) err
 		return fmt.Errorf("Couldn't update links,err: %v", err)
 	}
 	// now we update the metadata
-	_, err = pgDb.UpdateDocCountAndAvgDocLength(ctx, float32(len(tokens)))
+	_, err = pgDb.UpdateDocCountAndAvgDocLength(ctx, float32(docLength))
 	if err != nil {
 		return fmt.Errorf("Failed to update metadata: %v", err)
 	}
-
+	log.Printf("Created outgoing Blank Pages for page: %v", page.Url)
 	// image stuff here
 	var images []internal.CreateImagesParams
 	for imgURL, altText := range pd.ImageMap {
@@ -141,5 +147,6 @@ func indexPage(pd *db.PageData, pgDb *internal.Queries, ctx context.Context) err
 	if err != nil {
 		return fmt.Errorf("Failed to create images, err: %v", err)
 	}
+	log.Printf("Created Images for Page: %v", page.Url)
 	return nil
 }
