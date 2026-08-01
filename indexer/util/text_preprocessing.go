@@ -15,51 +15,62 @@ var bannedTags = `script,style,noscript,template,svg,canvas,iframe,object,embed,
 
 var specialCharRegex = regexp.MustCompile(`[^a-zA-Z0-9]+`)
 
-func CleanTokens(tokens []string) (output []string) {
-	for _, word := range tokens {
+func CleanTokens(tokens []string) (wordStems map[string]string, output []string) {
+	for _, raw := range tokens {
 		// 1. lowercase
-		word = strings.ToLower(word)
+		raw = strings.ToLower(raw)
 
 		// 2. normalization (removing punctuation,numbers)
 		// this is important actually, we replace punctuation like "/,.-" with " " instead of ""
 		// this way "can/could" would be "can could" and not "cancould"
-		word = specialCharRegex.ReplaceAllString(word, " ")
+		raw = specialCharRegex.ReplaceAllString(raw, " ")
 
-		if strings.TrimSpace(word) == "" {
-			continue
-		}
+		// chat gpt caught this bug :<
+		// in the prev step, 'can/could' would be 'can could' which isn't 1 word and stemming would break things
+		// so we split on whitespaces.
+		for _, word := range strings.Fields(raw) {
 
-		// 3. removing stop words like you, the, etc
-		if _, exists := constants.EnglishStopWords[word]; exists {
-			continue
-		}
+			// 3. removing stop words like you, the, etc
+			if _, exists := constants.EnglishStopWords[word]; exists {
+				continue
+			}
 
-		// 4. stemming, so running => run, organization => organiz, etc
-		// last param here is useless
-		word, err := snowball.Stem(word, "english", true)
-		if err != nil {
-			log.Println("error stemming: ", err)
-			continue
-		}
+			// 4. stemming, so running => run, organization => organiz, etc
+			// last param here is useless
+			stemmed, err := snowball.Stem(word, "english", true)
+			if err != nil {
+				log.Println("error stemming: ", err)
+				continue
+			}
 
-		// if word is completely replaced then skip it
-		if word == "" {
-			continue
+			// if word is completely replaced then skip it
+			// or if the word is a single character or digit
+			if stemmed == "" || len(stemmed) < 2 {
+				continue
+			}
+
+			wordStems[word] = stemmed
+			output = append(output, stemmed)
 		}
-		output = append(output, word)
 
 	}
-	return output
+	return wordStems, output
 }
 
-func BuildPageWithWeightTF(HTML string) (tokens map[string][]string, output map[string]float32, err error) {
-
+func BuildPageWithWeightTF(HTML string) (allWordStems map[string]string, tokens map[string][]string, output map[string]float32, err error) {
+	// tokens is a map of html tags to words containing them, e.g. "h1" : ["game","play"]
+	// its purpose is getting the actual doc_length and store it in the db
 	tokens = make(map[string][]string)
+	// output is the map of words and their weight tf, e.g. "game" : 7
+	// its purpose is counting tf, and storing the words in postings table
 	output = make(map[string]float32)
+	// unique words is a map of unique words to thier stemmed version, e.g. "studying" : "studi"
+	// its purpose is getting all unique words and storing them vocab table, for spell correction
+	allWordStems = make(map[string]string)
 
 	doc, err := getDoc(HTML)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to parse HTML %v", err)
+		return nil, nil, nil, fmt.Errorf("failed to parse HTML %v", err)
 	}
 
 	// remove useless tag before processing useful ones.
@@ -72,10 +83,15 @@ func BuildPageWithWeightTF(HTML string) (tokens map[string][]string, output map[
 		_tokens, err := ExtractAllTextFromTag(doc, tag)
 		tokens[tag] = _tokens
 		if err != nil {
-			return tokens, output, fmt.Errorf("Failed to extract tokens: %v", err)
+			return nil, nil, nil, fmt.Errorf("Failed to extract tokens: %v", err)
 		}
-		cleanTokens := CleanTokens(_tokens)
+		wordStems, cleanTokens := CleanTokens(_tokens)
 
+		for k, v := range wordStems {
+			allWordStems[k] = v
+		}
+
+		// building the inverted tf
 		for _, word := range cleanTokens {
 			if _, exists := output[word]; exists {
 				output[word] += weight
@@ -85,6 +101,6 @@ func BuildPageWithWeightTF(HTML string) (tokens map[string][]string, output map[
 
 		}
 	}
-	return tokens, output, nil
+	return allWordStems, tokens, output, nil
 
 }

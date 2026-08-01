@@ -48,3 +48,8 @@ type Term struct {
 	Term string
 	Df   int32
 }
+
+type Vocab struct {
+	Word string
+	Stem string
+}

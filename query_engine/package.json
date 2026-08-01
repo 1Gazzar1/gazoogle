@@ -1,0 +1,29 @@
+{
+  "name": "query-engine",
+  "version": "1.0.0",
+  "license": "ISC",
+  "author": "",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "tsx watch ./src",
+    "start": "node ./dist/index.js",
+    "build": "tsc && tsc-alias",
+    "build:st": "npm run build && npm run start"
+  },
+  "keywords": [],
+  "dependencies": {
+    "cors": "^2.8.6",
+    "express": "^5.1.0",
+    "helmet": "^8.1.0"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.5",
+    "@types/node": "^24.9.1",
+    "tsc-alias": "^1.8.16",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3"
+  }
+}

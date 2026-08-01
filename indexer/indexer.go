@@ -72,7 +72,7 @@ func doWithTx(pd *db.PageData, db *pgxpool.Pool, ctx context.Context, queries *i
 
 func indexPage(pd *db.PageData, pgDb *internal.Queries, ctx context.Context) error {
 
-	tokens, output, err := util.BuildPageWithWeightTF(pd.HTML)
+	wordStems, tokens, output, err := util.BuildPageWithWeightTF(pd.HTML)
 	if err != nil {
 		return fmt.Errorf("failed to build/tokenize page: %v", err)
 	}
@@ -120,6 +120,15 @@ func indexPage(pd *db.PageData, pgDb *internal.Queries, ctx context.Context) err
 		return fmt.Errorf("Failed to create postings: %v", err)
 	}
 	log.Printf("Updated Terms & Created Postings for Page: %v", page.Url)
+
+	// inserting original words into the vocab table
+	var ogWords []string
+	var stems []string
+	for ogWord, stem := range wordStems {
+		ogWords = append(ogWords, ogWord)
+		stems = append(stems, stem)
+	}
+	pgDb.CreateVocabs(ctx, internal.CreateVocabsParams{Column1: ogWords, Column2: stems})
 
 	// we do this now so the updating links doesn't crash
 	ids, err := pgDb.CreateBlankPages(ctx, pd.OutgoingLinks)

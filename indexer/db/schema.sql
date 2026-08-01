@@ -21,6 +21,15 @@ CREATE TABLE IF NOT EXISTS terms (
   df INT NOT NULL DEFAULT 1 
   -- idf REAL NOT NULL DEFAULT 0 -- i got rid of idf here cuz i didn't like the idea of a worker updating all the idfs for every term, calculating it on the fly in the query engine seems better
 );
+-- vocab table 
+-- this table is there just for spell correction on the query engine side 
+-- the diff between it and the terms table is that terms table keeps track of stemmed words 
+-- but the vocab table keeps track of all unique words, e.g. terms has 'studi', while vocab can have 'study','studying','studied' all referencing 'studi' from terms
+CREATE TABLE IF NOT EXISTS vocab ( 
+  word TEXT NOT NULL PRIMARY KEY,
+  stem TEXT NOT NULL REFERENCES terms(term)
+);
+
 -- this table is the relation between a page and each word it has 
 -- this serves as the inverted index
 CREATE TABLE IF NOT EXISTS postings ( 
