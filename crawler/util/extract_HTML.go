@@ -46,7 +46,7 @@ type PageData struct {
 	HTML          string            `json:"HTML"`
 	Title         string            `json:"Title"`
 	OutgoingLinks []string          `json:"OutgoingLinks"` // basically the urls inside a page
-	ImageMap     map[string]string `json:"ImageMap"`     // a map where the key is the url and val is the 'alt' text
+	ImageMap      map[string]string `json:"ImageMap"`      // a map where the key is the url and val is the 'alt' text
 }
 
 func BuildPageData(URL string) (pageData PageData, err error) {
@@ -79,7 +79,7 @@ func BuildPageData(URL string) (pageData PageData, err error) {
 		Title:         title,
 		HTML:          HTML,
 		OutgoingLinks: urls,
-		ImageMap:     imgs,
+		ImageMap:      imgs,
 	}, nil
 }
 
@@ -141,7 +141,7 @@ func extractImages(HTML string, baseURL *url.URL) (ImageMap map[string]string, e
 		// if the img tag doesn't have both 'src' & 'alt' then return
 		src, srcExists := s.Attr("src")
 		altText, altExists := s.Attr("alt")
-		if !(srcExists || altExists) {
+		if !(srcExists || altExists) || strings.TrimSpace(src) == "" || strings.TrimSpace(altText) == "" {
 			return
 		}
 		u, err := url.Parse(src)

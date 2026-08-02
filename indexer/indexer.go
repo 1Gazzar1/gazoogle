@@ -28,6 +28,7 @@ func worker(wg *sync.WaitGroup, pgDb *pgxpool.Pool, queries *internal.Queries, c
 		if err != nil {
 			log.Printf("Failed to get document count, err: %v", err)
 		}
+		// limit to stop the indexer if we reache our goal (1M pages indexed)
 		if num >= constants.PageLimit {
 			return
 		}
@@ -72,18 +73,17 @@ func doWithTx(pd *db.PageData, db *pgxpool.Pool, ctx context.Context, queries *i
 
 func indexPage(pd *db.PageData, pgDb *internal.Queries, ctx context.Context) error {
 
-	wordStems, tokens, output, err := util.BuildPageWithWeightTF(pd.HTML)
+	originalText, wordStems, tokens, output, err := util.BuildPageWithWeightTF(pd.HTML)
 	if err != nil {
 		return fmt.Errorf("failed to build/tokenize page: %v", err)
 	}
 	headings := util.UnTokenizeText(tokens["h1"], tokens["h2"])
 
-	// TODO: make embedding here
-	var l []float32
-	for range 384 {
-		l = append(l, 1)
+	modelOutput, err := util.Embed(originalText)
+	if err != nil {
+		return fmt.Errorf("Embedding Model Failed: %w", err)
 	}
-	var embedding pgvector.Vector = pgvector.NewVector(l)
+	embedding := pgvector.NewVector(modelOutput)
 
 	var docLength int
 	for _, token := range tokens {
@@ -94,7 +94,7 @@ func indexPage(pd *db.PageData, pgDb *internal.Queries, ctx context.Context) err
 		Heading:   pgtype.Text{String: headings, Valid: true},
 		Title:     pgtype.Text{String: pd.Title, Valid: true},
 		Embedding: embedding,
-		DocLength: pgtype.Int4{Int32: int32(docLength)}})
+		DocLength: pgtype.Int4{Int32: int32(docLength), Valid: true}})
 	if err != nil {
 		return fmt.Errorf("Failed to create page, err: %w", err)
 	}
@@ -152,8 +152,13 @@ func indexPage(pd *db.PageData, pgDb *internal.Queries, ctx context.Context) err
 	// image stuff here
 	var images []internal.CreateImagesParams
 	for imgURL, altText := range pd.ImageMap {
-		// TODO: do image alt text embedding here
-		// var embedding pgvector.Vector
+		altTextModelOutput, err := util.Embed(altText)
+		embedding := pgvector.NewVector(altTextModelOutput)
+
+		if err != nil {
+			return fmt.Errorf("Embedding Model Failed: %w", err)
+		}
+
 		images = append(images, internal.CreateImagesParams{Url: imgURL, AltText: altText, Embedding: embedding})
 	}
 	_, err = pgDb.CreateImages(ctx, images)

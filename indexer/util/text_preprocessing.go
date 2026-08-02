@@ -15,7 +15,8 @@ var bannedTags = `script,style,noscript,template,svg,canvas,iframe,object,embed,
 
 var specialCharRegex = regexp.MustCompile(`[^a-zA-Z0-9]+`)
 
-func CleanTokens(tokens []string) (wordStems map[string]string, output []string) {
+func CleanTokens(tokens []string) (wordStems map[string]string, cleanedTokens []string) {
+	wordStems = make(map[string]string)
 	for _, raw := range tokens {
 		// 1. lowercase
 		raw = strings.ToLower(raw)
@@ -50,27 +51,33 @@ func CleanTokens(tokens []string) (wordStems map[string]string, output []string)
 			}
 
 			wordStems[word] = stemmed
-			output = append(output, stemmed)
+			cleanedTokens = append(cleanedTokens, stemmed)
 		}
 
 	}
-	return wordStems, output
+	return wordStems, cleanedTokens
 }
 
-func BuildPageWithWeightTF(HTML string) (allWordStems map[string]string, tokens map[string][]string, output map[string]float32, err error) {
+// it should be faster now because we don't parse the html every iteration
+// we just use doc after cleaning it from garbage
+func BuildPageWithWeightTF(HTML string) (originalText string, allWordStems map[string]string,
+	tokens map[string][]string, termFreq map[string]float32, err error) {
 	// tokens is a map of html tags to words containing them, e.g. "h1" : ["game","play"]
 	// its purpose is getting the actual doc_length and store it in the db
 	tokens = make(map[string][]string)
-	// output is the map of words and their weight tf, e.g. "game" : 7
+	// termFreq is the map of words and their weighted tf, e.g. "game" : 7
 	// its purpose is counting tf, and storing the words in postings table
-	output = make(map[string]float32)
+	termFreq = make(map[string]float32)
 	// unique words is a map of unique words to thier stemmed version, e.g. "studying" : "studi"
 	// its purpose is getting all unique words and storing them vocab table, for spell correction
 	allWordStems = make(map[string]string)
+	// it's what you think it is
+	// its purpose is feeding the raw text to the embedding model
+	originalText = ""
 
 	doc, err := getDoc(HTML)
 	if err != nil {
-		return nil, nil, nil, fmt.Errorf("failed to parse HTML %v", err)
+		return "", nil, nil, nil, fmt.Errorf("failed to parse HTML %v", err)
 	}
 
 	// remove useless tag before processing useful ones.
@@ -78,12 +85,13 @@ func BuildPageWithWeightTF(HTML string) (allWordStems map[string]string, tokens 
 	doc.Find(bannedTags).Remove()
 
 	for tag, weight := range constants.TagWeights {
-		// it should be faster now because we don't parse the html every iteration
-		// we just use doc after cleaning it from garbage
+
 		_tokens, err := ExtractAllTextFromTag(doc, tag)
+		originalText += UnTokenizeText(_tokens) + "\n"
+
 		tokens[tag] = _tokens
 		if err != nil {
-			return nil, nil, nil, fmt.Errorf("Failed to extract tokens: %v", err)
+			return "", nil, nil, nil, fmt.Errorf("Failed to extract tokens: %v", err)
 		}
 		wordStems, cleanTokens := CleanTokens(_tokens)
 
@@ -93,14 +101,14 @@ func BuildPageWithWeightTF(HTML string) (allWordStems map[string]string, tokens 
 
 		// building the inverted tf
 		for _, word := range cleanTokens {
-			if _, exists := output[word]; exists {
-				output[word] += weight
+			if _, exists := termFreq[word]; exists {
+				termFreq[word] += weight
 				continue
 			}
-			output[word] = weight
+			termFreq[word] = weight
 
 		}
 	}
-	return allWordStems, tokens, output, nil
+	return originalText, allWordStems, tokens, termFreq, nil
 
 }

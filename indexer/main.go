@@ -43,6 +43,7 @@ func main() {
 	initDatabaseSchema(POSTGRES, ctx)
 
 	pool := connectToPg(POSTGRES, ctx)
+	defer pool.Close()
 
 	wg := &sync.WaitGroup{}
 	queries := internal.New(pool)
