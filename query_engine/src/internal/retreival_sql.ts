@@ -1,10 +1,14 @@
-import { Sql } from "postgres";
+import { QueryArrayConfig, QueryArrayResult } from "pg";
+
+interface Client {
+    query: (config: QueryArrayConfig) => Promise<QueryArrayResult>;
+}
 
 export const getPagesBytWordsQuery = `-- name: GetPagesBytWords :many
 SELECT postings.id, word, page_id, tf, term, df, pages.id, url, title, heading, embedding, doc_length, crawled_at FROM postings 
 JOIN terms ON word = terms.term 
 JOIN pages ON page_id = pages.id 
-WHERE word in (unnest($1::text[]))`;
+WHERE word IN (SELECT unnest($1::text[]))`;
 
 export interface GetPagesBytWordsArgs {
     words: string[];
@@ -26,21 +30,28 @@ export interface GetPagesBytWordsRow {
     crawledAt: Date | null;
 }
 
-export async function getPagesBytWords(sql: Sql, args: GetPagesBytWordsArgs): Promise<GetPagesBytWordsRow[]> {
-    return (await sql.unsafe(getPagesBytWordsQuery, [args.words]).values()).map(row => ({
-        id: row[0],
-        word: row[1],
-        pageId: row[2],
-        tf: row[3],
-        term: row[4],
-        df: row[5],
-        id_2: row[6],
-        url: row[7],
-        title: row[8],
-        heading: row[9],
-        embedding: row[10],
-        docLength: row[11],
-        crawledAt: row[12]
-    }));
+export async function getPagesBytWords(client: Client, args: GetPagesBytWordsArgs): Promise<GetPagesBytWordsRow[]> {
+    const result = await client.query({
+        text: getPagesBytWordsQuery,
+        values: [args.words],
+        rowMode: "array"
+    });
+    return result.rows.map(row => {
+        return {
+            id: row[0],
+            word: row[1],
+            pageId: row[2],
+            tf: row[3],
+            term: row[4],
+            df: row[5],
+            id_2: row[6],
+            url: row[7],
+            title: row[8],
+            heading: row[9],
+            embedding: row[10],
+            docLength: row[11],
+            crawledAt: row[12]
+        };
+    });
 }
 

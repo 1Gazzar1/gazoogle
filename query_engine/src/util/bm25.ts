@@ -1,7 +1,7 @@
 // i got the formuals from this site
 // https://mbrenndoerfer.com/writing/bm25-search-algorithm-elasticsearch-implementation#putting-it-all-together-the-complete-formula
 
-type TfIdfParams = {
+export type BM25Params = {
     b: number;
     k1: number;
     avgDocLen: number;
@@ -19,7 +19,7 @@ export function getBM25({
     k1,
     tf,
     totalDocs,
-}: TfIdfParams) {
+}: BM25Params) {
     return getIdf(totalDocs, df) * getTf(tf, k1, docLen, avgDocLen, b);
 }
 

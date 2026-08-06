@@ -16,15 +16,15 @@
   "dependencies": {
     "cors": "^2.8.6",
     "express": "^5.1.0",
-    "fast-levenshtein": "^3.0.0",
+    "fastest-levenshtein": "^1.0.16",
     "helmet": "^8.1.0",
-    "postgres": "^3.4.9"
+    "pg": "^8.22.0"
   },
   "devDependencies": {
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.5",
-    "@types/fast-levenshtein": "^0.0.4",
     "@types/node": "^24.9.1",
+    "@types/pg": "^8.20.4",
     "tsc-alias": "^1.8.16",
     "tsx": "^4.20.6",
     "typescript": "^5.9.3"

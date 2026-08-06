@@ -1,2 +1,2 @@
 -- name: GetAllVocab :many
-SELECT word FROM vocab; 
+SELECT * FROM vocab; 
