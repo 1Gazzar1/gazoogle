@@ -17,7 +17,8 @@
     "cors": "^2.8.6",
     "express": "^5.1.0",
     "fast-levenshtein": "^3.0.0",
-    "helmet": "^8.1.0"
+    "helmet": "^8.1.0",
+    "postgres": "^3.4.9"
   },
   "devDependencies": {
     "@types/cors": "^2.8.19",

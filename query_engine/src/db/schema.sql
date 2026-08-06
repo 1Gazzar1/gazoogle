@@ -65,7 +65,7 @@ CREATE TABLE IF NOT EXISTS links (
 CREATE TABLE IF NOT EXISTS metadata (
     id BOOLEAN PRIMARY KEY DEFAULT TRUE,
     total_documents INT NOT NULL DEFAULT 0,
-       REAL NOT NULL DEFAULT 0
+    avg_doc_length REAL NOT NULL DEFAULT 0
 );
 
 INSERT INTO metadata(id,total_documents,avg_doc_length) VALUES(TRUE,0,0)

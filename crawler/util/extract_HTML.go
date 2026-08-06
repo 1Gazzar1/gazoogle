@@ -25,6 +25,7 @@ var blockedDomains = map[string]struct{}{
 	"www.mediawiki.org":        {},
 	"stats.wikimedia.org":      {},
 	"commons.wikimedia.org":    {},
+	"scholar.google.com":       {},
 }
 var bannedNamespaces = map[string]bool{
 	"Talk":        true,
