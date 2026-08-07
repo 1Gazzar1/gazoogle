@@ -47,7 +47,7 @@ CREATE TABLE IF NOT EXISTS postings (
 CREATE TABLE IF NOT EXISTS images ( 
   id SERIAL PRIMARY KEY,
   alt_text TEXT NOT NULL,
-  url TEXT NOT NULL, 
+  url TEXT NOT NULL UNIQUE, 
   embedding VECTOR(384) -- this is an embedding of the alt text and not the actual image 
 );
 
@@ -65,7 +65,7 @@ CREATE TABLE IF NOT EXISTS links (
 CREATE TABLE IF NOT EXISTS metadata (
     id BOOLEAN PRIMARY KEY DEFAULT TRUE,
     total_documents INT NOT NULL DEFAULT 0,
-       REAL NOT NULL DEFAULT 0
+    avg_doc_length REAL NOT NULL DEFAULT 0
 );
 
 INSERT INTO metadata(id,total_documents,avg_doc_length) VALUES(TRUE,0,0)

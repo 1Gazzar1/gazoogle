@@ -9,40 +9,6 @@ import (
 	"context"
 )
 
-// iteratorForCreateImages implements pgx.CopyFromSource.
-type iteratorForCreateImages struct {
-	rows                 []CreateImagesParams
-	skippedFirstNextCall bool
-}
-
-func (r *iteratorForCreateImages) Next() bool {
-	if len(r.rows) == 0 {
-		return false
-	}
-	if !r.skippedFirstNextCall {
-		r.skippedFirstNextCall = true
-		return true
-	}
-	r.rows = r.rows[1:]
-	return len(r.rows) > 0
-}
-
-func (r iteratorForCreateImages) Values() ([]interface{}, error) {
-	return []interface{}{
-		r.rows[0].Url,
-		r.rows[0].AltText,
-		r.rows[0].Embedding,
-	}, nil
-}
-
-func (r iteratorForCreateImages) Err() error {
-	return nil
-}
-
-func (q *Queries) CreateImages(ctx context.Context, arg []CreateImagesParams) (int64, error) {
-	return q.db.CopyFrom(ctx, []string{"images"}, []string{"url", "alt_text", "embedding"}, &iteratorForCreateImages{rows: arg})
-}
-
 // iteratorForCreatePostings implements pgx.CopyFromSource.
 type iteratorForCreatePostings struct {
 	rows                 []CreatePostingsParams

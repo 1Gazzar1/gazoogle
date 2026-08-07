@@ -44,7 +44,7 @@ export async function searchPageEmbeddings(client: Client, args: SearchPageEmbed
 }
 
 export const searchImageEmbeddingsQuery = `-- name: SearchImageEmbeddings :many
-SELECT id, alt_text, url, embedding from images
+SELECT id,alt_text,url from images
 ORDER BY embedding <=> $1::Vector(384)
 LIMIT $2::int`;
 
@@ -57,7 +57,6 @@ export interface SearchImageEmbeddingsRow {
     id: number;
     altText: string;
     url: string;
-    embedding: string | null;
 }
 
 export async function searchImageEmbeddings(client: Client, args: SearchImageEmbeddingsArgs): Promise<SearchImageEmbeddingsRow[]> {
@@ -70,8 +69,7 @@ export async function searchImageEmbeddings(client: Client, args: SearchImageEmb
         return {
             id: row[0],
             altText: row[1],
-            url: row[2],
-            embedding: row[3]
+            url: row[2]
         };
     });
 }

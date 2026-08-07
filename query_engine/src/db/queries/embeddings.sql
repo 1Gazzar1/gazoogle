@@ -4,6 +4,6 @@ ORDER BY embedding <=> @embedding::Vector(384)
 LIMIT @count::int; 
 
 -- name: SearchImageEmbeddings :many 
-SELECT * from images
+SELECT id,alt_text,url from images
 ORDER BY embedding <=> @embedding::Vector(384)
 LIMIT @count::int;

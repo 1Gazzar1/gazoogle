@@ -150,7 +150,10 @@ func indexPage(pd *db.PageData, pgDb *internal.Queries, ctx context.Context) err
 	}
 	log.Printf("Created outgoing Blank Pages for page: %v", page.Url)
 	// image stuff here
-	var images []internal.CreateImagesParams
+	var urls = make([]string, len(pd.ImageMap))
+	var altTexts = make([]string, len(pd.ImageMap))
+	var embeddings = make([]pgvector.Vector, len(pd.ImageMap))
+
 	for imgURL, altText := range pd.ImageMap {
 		altTextModelOutput, err := util.Embed(altText)
 		embedding := pgvector.NewVector(altTextModelOutput)
@@ -159,9 +162,16 @@ func indexPage(pd *db.PageData, pgDb *internal.Queries, ctx context.Context) err
 			return fmt.Errorf("Embedding Model Failed: %w", err)
 		}
 
-		images = append(images, internal.CreateImagesParams{Url: imgURL, AltText: altText, Embedding: embedding})
+		urls = append(urls, imgURL)
+		altTexts = append(altTexts, altText)
+		embeddings = append(embeddings, embedding)
+
 	}
-	_, err = pgDb.CreateImages(ctx, images)
+	err = pgDb.CreateImages(ctx, internal.CreateImagesParams{
+		Urls:       urls,
+		Alttexts:   altTexts,
+		Embeddings: embeddings,
+	})
 	if err != nil {
 		return fmt.Errorf("Failed to create images, err: %v", err)
 	}

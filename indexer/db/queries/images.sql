@@ -9,6 +9,7 @@ WHERE (id = $1);
 INSERT INTO images(alt_text,url,embedding) VALUES ($1,$2,$3)
 RETURNING *;
 
--- name: CreateImages :copyfrom 
+-- name: CreateImages :exec 
 INSERT INTO images(url,alt_text,embedding) 
-VALUES ($1,$2,$3);
+SELECT unnest(@urls::text[]), unnest(@altTexts::text[]), unnest(@embeddings::Vector(384)[])
+ON CONFLICT (url) DO NOTHING;

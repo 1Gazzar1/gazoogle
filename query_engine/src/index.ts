@@ -1,5 +1,5 @@
 import express, { ErrorRequestHandler } from "express";
-import { CustomError } from "@/errors/error.js";
+import { CustomError, ERRORS } from "@/errors/error.js";
 import { loadEnvFile } from "node:process";
 import helmet from "helmet";
 import { cleanQuery } from "@/util/cleanQuery.js";
@@ -41,6 +41,8 @@ app.get("/search", async (req, res) => {
     const q = req.query["q"] as string;
     const qWords = cleanQuery(q);
 
+    if (qWords.length <= 0) throw ERRORS.BAD_REQUEST("enter a valid query bro");
+
     const vocabTable = await getAllVocab(dbClient);
     const vocabStems: Record<string, string> = {};
     vocabTable.forEach((row) => {
@@ -61,17 +63,29 @@ app.get("/search", async (req, res) => {
         }
         return word;
     });
+
+    if (finalQuery.length <= 0)
+        throw ERRORS.BAD_REQUEST(
+            "your query was so generic it went to the shadow realm",
+        );
+
     const stems = finalQuery.map((q) => vocabStems[q]);
     // this gets a JOIN of 3 tables ( postings, terms and pages ) to gather all data to calc bm25
     const data = await getPagesBytWords(dbClient, {
         words: stems,
     });
 
+    if (!data || data.length <= 0)
+        throw ERRORS.NOTFOUND("no bm25 results, somehow ?");
+
     const qEmbedding = await embed(q); // i decided to embed the actual query and not the cleaned version,
     const _embeddingResults = await searchPageEmbeddings(dbClient, {
         embedding: JSON.stringify(qEmbedding),
         count: SearchLimit,
     });
+    if (!_embeddingResults || _embeddingResults.length <= 0)
+        throw ERRORS.NOTFOUND("no embedding results, somehow ?");
+
     const embeddingResults = _embeddingResults.map((row): EmbeddingPage => {
         return {
             type: "embedding",
@@ -83,6 +97,8 @@ app.get("/search", async (req, res) => {
     });
 
     const docsInfo = await getDocInfo(dbClient);
+
+    if (!docsInfo) throw ERRORS.INTERNAL("failed to get doc info :(");
 
     const resultsMap: Record<string, BM25Page> = {};
     for (const row of data) {
@@ -140,9 +156,12 @@ app.get("/search", async (req, res) => {
     });
 });
 
-app.get("/image", async (req, res) => {
+app.get("/images", async (req, res) => {
     // embed the query text
     const q = req.query["q"] as string;
+    if (q.trim().length <= 0)
+        throw ERRORS.BAD_REQUEST("bro just search for something");
+
     const qEmbedding = await embed(q);
 
     // search against the images alt text in the db
@@ -150,6 +169,9 @@ app.get("/image", async (req, res) => {
         embedding: JSON.stringify(qEmbedding),
         count: SearchLimit,
     });
+
+    if (!images || images.length <= 0)
+        throw ERRORS.NOTFOUND("didn't find any images somehow");
 
     res.status(200).json({
         images,

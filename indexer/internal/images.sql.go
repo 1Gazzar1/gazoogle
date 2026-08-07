@@ -34,10 +34,21 @@ func (q *Queries) CreateImage(ctx context.Context, arg CreateImageParams) (Image
 	return i, err
 }
 
+const createImages = `-- name: CreateImages :exec
+INSERT INTO images(url,alt_text,embedding) 
+SELECT unnest($1::text[]), unnest($2::text[]), unnest($3::Vector(384)[])
+ON CONFLICT (url) DO NOTHING
+`
+
 type CreateImagesParams struct {
-	Url       string
-	AltText   string
-	Embedding pgvector.Vector
+	Urls       []string
+	Alttexts   []string
+	Embeddings []pgvector.Vector
+}
+
+func (q *Queries) CreateImages(ctx context.Context, arg CreateImagesParams) error {
+	_, err := q.db.Exec(ctx, createImages, arg.Urls, arg.Alttexts, arg.Embeddings)
+	return err
 }
 
 const getAllImages = `-- name: GetAllImages :many

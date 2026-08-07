@@ -47,7 +47,7 @@ CREATE TABLE IF NOT EXISTS postings (
 CREATE TABLE IF NOT EXISTS images ( 
   id SERIAL PRIMARY KEY,
   alt_text TEXT NOT NULL,
-  url TEXT NOT NULL, 
+  url TEXT NOT NULL UNIQUE, 
   embedding VECTOR(384) -- this is an embedding of the alt text and not the actual image 
 );
 
