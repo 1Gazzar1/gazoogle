@@ -25,6 +25,7 @@ func Embed(text string) ([]float32, error) {
 		return nil, err
 	}
 
+	// TODO : REPLACE CONNECTION STRING WITH ENV VAR 
 	resp, err := http.Post(
 		"http://localhost:1234/embed",
 		"application/json",

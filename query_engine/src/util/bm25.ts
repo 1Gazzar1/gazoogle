@@ -1,15 +1,7 @@
 // i got the formuals from this site
 // https://mbrenndoerfer.com/writing/bm25-search-algorithm-elasticsearch-implementation#putting-it-all-together-the-complete-formula
 
-export type BM25Params = {
-    b: number;
-    k1: number;
-    avgDocLen: number;
-    totalDocs: number;
-    docLen: number;
-    df: number;
-    tf: number;
-};
+import { BM25Params } from "@/types/bm25.js";
 
 export function getBM25({
     avgDocLen,

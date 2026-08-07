@@ -7,8 +7,14 @@ import { doLevenshtein } from "@/util/levenshtein.js";
 import { getAllVocab } from "@/internal/vocab_sql.js";
 import { initDb } from "@/db/db.js";
 import { getPagesBytWords } from "@/internal/retreival_sql.js";
-import { BM25Params, getBM25 } from "@/util/bm25.js";
+import { getBM25 } from "@/util/bm25.js";
 import { getDocInfo } from "@/internal/metadata_sql.js";
+import { embed } from "@/util/embeddings.js";
+import { b, k1, SearchLimit } from "@/constants/constants.js";
+import { searchEmbeddings } from "@/internal/embeddings_sql.js";
+import { BM25Page, EmbeddingPage, Term } from "@/types/page.js";
+import { BM25Params } from "@/types/bm25.js";
+import { rrf } from "@/util/rrf.js";
 
 loadEnvFile();
 
@@ -40,7 +46,6 @@ app.get("/search", async (req, res) => {
 
     let corrected = false;
 
-    console.log(qWords);
     const finalQuery = qWords.map((word) => {
         const closest = doLevenshtein(word, Object.keys(vocabStems));
         if (word !== closest) {
@@ -55,45 +60,83 @@ app.get("/search", async (req, res) => {
         words: stems,
     });
 
+    const qEmbedding = await embed(finalQuery.join(" "));
+    const _embeddingResults = await searchEmbeddings(dbClient, {
+        embedding: JSON.stringify(qEmbedding),
+        count: SearchLimit,
+    });
+    const embeddingResults = _embeddingResults.map((row): EmbeddingPage => {
+        return {
+            type: "embedding",
+            heading: row.heading ?? "",
+            id: row.id,
+            title: row.title ?? "",
+            url: row.url,
+        };
+    });
+
     const docsInfo = await getDocInfo(dbClient);
 
-    type Page = {
-        pageId: number;
-        url: string;
-        heading: string;
-        title: string;
-        score: number;
-    };
-    const resultsMap: Record<string, Page> = {};
+    const resultsMap: Record<string, BM25Page> = {};
     for (const row of data) {
         const params: BM25Params = {
             avgDocLen: docsInfo?.avgDocLength ?? 0,
             totalDocs: docsInfo?.totalDocuments ?? 0,
-            b: 0.7,
-            k1: 1.2,
+            b: b,
+            k1: k1,
             df: row.df,
             docLen: row.docLength ?? 0,
             tf: row.tf,
         };
         const score = getBM25(params);
 
-        if (!resultsMap[row.url]) {
-            resultsMap[row.url].score += score;
+        if (resultsMap[row.url]) {
+            const term: Term = {
+                term: row.term,
+                df: row.df,
+                tf: row.tf,
+            };
+            resultsMap[row.url].bm25Score += score;
+            resultsMap[row.url].terms.push(term);
             continue;
         }
         resultsMap[row.url] = {
-            ...resultsMap[row.url],
-            score: resultsMap[row.url].score + score,
+            type: "bm25",
+            heading: row.heading ?? "",
+            id: row.pageId,
+            bm25Score: score,
+            title: row.title ?? "",
+            url: row.url,
+            terms: [
+                {
+                    term: row.term,
+                    df: row.df,
+                    tf: row.tf,
+                },
+            ],
         };
     }
-    const results = Object.values(resultsMap);
-    results.sort((a, b) => b.score - a.score);
+
+    const bm25Results = Object.values(resultsMap);
+    bm25Results.sort((a, b) => b.bm25Score - a.bm25Score);
+
+    // rrf to combine both results into one
+    const finalResult = rrf(
+        bm25Results.slice(0, SearchLimit), // only take the best 100 pages from bm25, if you take all, embedding will almost always win
+        embeddingResults,
+    );
 
     res.json({
         corrected,
         q: finalQuery,
-        results: results.slice(0, 10),
+        results: finalResult.slice(0, 10),
     });
+});
+
+app.get("/image", async (req, res) => {
+    // embed the query text
+    // search against the images alt text in the db
+    // return top 20 or something
 });
 
 const errorHandler: ErrorRequestHandler = (err, req, res, next) => {
