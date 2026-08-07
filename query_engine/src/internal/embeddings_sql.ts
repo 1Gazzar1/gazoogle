@@ -4,17 +4,17 @@ interface Client {
     query: (config: QueryArrayConfig) => Promise<QueryArrayResult>;
 }
 
-export const searchEmbeddingsQuery = `-- name: SearchEmbeddings :many
+export const searchPageEmbeddingsQuery = `-- name: SearchPageEmbeddings :many
 SELECT id, url, title, heading, embedding, doc_length, crawled_at FROM pages 
 ORDER BY embedding <=> $1::Vector(384)
 LIMIT $2::int`;
 
-export interface SearchEmbeddingsArgs {
+export interface SearchPageEmbeddingsArgs {
     embedding: string;
     count: number;
 }
 
-export interface SearchEmbeddingsRow {
+export interface SearchPageEmbeddingsRow {
     id: number;
     url: string;
     title: string | null;
@@ -24,9 +24,9 @@ export interface SearchEmbeddingsRow {
     crawledAt: Date | null;
 }
 
-export async function searchEmbeddings(client: Client, args: SearchEmbeddingsArgs): Promise<SearchEmbeddingsRow[]> {
+export async function searchPageEmbeddings(client: Client, args: SearchPageEmbeddingsArgs): Promise<SearchPageEmbeddingsRow[]> {
     const result = await client.query({
-        text: searchEmbeddingsQuery,
+        text: searchPageEmbeddingsQuery,
         values: [args.embedding, args.count],
         rowMode: "array"
     });
@@ -39,6 +39,39 @@ export async function searchEmbeddings(client: Client, args: SearchEmbeddingsArg
             embedding: row[4],
             docLength: row[5],
             crawledAt: row[6]
+        };
+    });
+}
+
+export const searchImageEmbeddingsQuery = `-- name: SearchImageEmbeddings :many
+SELECT id, alt_text, url, embedding from images
+ORDER BY embedding <=> $1::Vector(384)
+LIMIT $2::int`;
+
+export interface SearchImageEmbeddingsArgs {
+    embedding: string;
+    count: number;
+}
+
+export interface SearchImageEmbeddingsRow {
+    id: number;
+    altText: string;
+    url: string;
+    embedding: string | null;
+}
+
+export async function searchImageEmbeddings(client: Client, args: SearchImageEmbeddingsArgs): Promise<SearchImageEmbeddingsRow[]> {
+    const result = await client.query({
+        text: searchImageEmbeddingsQuery,
+        values: [args.embedding, args.count],
+        rowMode: "array"
+    });
+    return result.rows.map(row => {
+        return {
+            id: row[0],
+            altText: row[1],
+            url: row[2],
+            embedding: row[3]
         };
     });
 }

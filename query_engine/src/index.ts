@@ -11,7 +11,10 @@ import { getBM25 } from "@/util/bm25.js";
 import { getDocInfo } from "@/internal/metadata_sql.js";
 import { embed } from "@/util/embeddings.js";
 import { b, k1, SearchLimit } from "@/constants/constants.js";
-import { searchEmbeddings } from "@/internal/embeddings_sql.js";
+import {
+    searchPageEmbeddings,
+    searchImageEmbeddings,
+} from "@/internal/embeddings_sql.js";
 import { BM25Page, EmbeddingPage, Term } from "@/types/page.js";
 import { BM25Params } from "@/types/bm25.js";
 import { rrf } from "@/util/rrf.js";
@@ -47,6 +50,10 @@ app.get("/search", async (req, res) => {
     let corrected = false;
 
     const finalQuery = qWords.map((word) => {
+        if (vocabStems[word]) {
+            // exit early if the word is correct
+            return word;
+        }
         const closest = doLevenshtein(word, Object.keys(vocabStems));
         if (word !== closest) {
             corrected = true;
@@ -60,8 +67,8 @@ app.get("/search", async (req, res) => {
         words: stems,
     });
 
-    const qEmbedding = await embed(finalQuery.join(" "));
-    const _embeddingResults = await searchEmbeddings(dbClient, {
+    const qEmbedding = await embed(q); // i decided to embed the actual query and not the cleaned version,
+    const _embeddingResults = await searchPageEmbeddings(dbClient, {
         embedding: JSON.stringify(qEmbedding),
         count: SearchLimit,
     });
@@ -126,7 +133,7 @@ app.get("/search", async (req, res) => {
         embeddingResults,
     );
 
-    res.json({
+    res.status(200).json({
         corrected,
         q: finalQuery,
         results: finalResult.slice(0, 10),
@@ -135,8 +142,18 @@ app.get("/search", async (req, res) => {
 
 app.get("/image", async (req, res) => {
     // embed the query text
+    const q = req.query["q"] as string;
+    const qEmbedding = await embed(q);
+
     // search against the images alt text in the db
-    // return top 20 or something
+    const images = await searchImageEmbeddings(dbClient, {
+        embedding: JSON.stringify(qEmbedding),
+        count: SearchLimit,
+    });
+
+    res.status(200).json({
+        images,
+    });
 });
 
 const errorHandler: ErrorRequestHandler = (err, req, res, next) => {
