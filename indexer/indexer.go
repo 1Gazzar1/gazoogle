@@ -28,7 +28,7 @@ func worker(wg *sync.WaitGroup, pgDb *pgxpool.Pool, queries *internal.Queries, c
 		if err != nil {
 			log.Printf("Failed to get document count, err: %v", err)
 		}
-		// limit to stop the indexer if we reache our goal (1M pages indexed)
+		// limit to stop the indexer if we reached our goal (1M pages indexed)
 		if num >= constants.PageLimit {
 			return
 		}
@@ -56,7 +56,7 @@ func doWithTx(pd *db.PageData, db *pgxpool.Pool, ctx context.Context, queries *i
 	if err != nil {
 		return err
 	}
-	// this is safe is tx.commit() is called first
+	// this is safe if tx.commit() is called first
 	defer tx.Rollback(ctx)
 
 	qtx := queries.WithTx(tx)

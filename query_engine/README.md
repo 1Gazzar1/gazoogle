@@ -1,8 +1,55 @@
-# processing the user query 
-1. first we tokenize the query so it's a list 
-2. then we clean up the query and everything but we don't stem 
-3. then we do levenshtien against our vocabs to see if it's there (if not we take the closest match) then stem (or take the stems directly from the table)
-4. then we do a query with these words against the postings table then calculate the tf_idf 
+# Query Engine
 
---- 
-We could go another way, we search the postings table immediatlly, if we don't get any matches then we do levenshtien and continue like the rest 
+## Overview
+
+This service processes a user's search query, compares it against the database, and returns the closest matching pages.
+
+## Dependencies
+
+- typescript
+- embedding service
+- postgres
+
+### typescript
+
+Chosen for type safety across the query pipeline, plus familiarity with Express for building the API layer.
+
+### embedding service
+
+Embeds the user's query so it can be compared against page embeddings in the database.
+
+### postgres
+
+Fetches query-relevant data and is used to calculate BM25 scores.
+
+## Architecture
+
+![query engine architecture](./readme-screenshots/image-1.png)
+
+## Pipeline
+
+The query engine exposes 2 endpoints (more may be added):
+
+- `/search` — takes a query string `q`
+- `/images` — takes a query string `q`
+
+### `/search`
+
+- Take the user query (`q`) and embed it upfront, for later use.
+- Run the same pre-processing used in the indexer: tokenize and lowercase (no stemming yet).
+- Spell-correct any word not found in the vocab, using closest Levenshtein match.
+- Stem the corrected query and search postgres using the stems.
+- Gather all BM25-relevant data in a single JOIN query.
+- Calculate BM25 per posting, then normalize so pages with multiple matching terms collapse into one combined score.
+- Run a cosine similarity search using the query embedding.
+- Combine the BM25 and embedding results using RRF (Reciprocal Rank Fusion).
+
+### `/images`
+
+- Embed the user query.
+- Run a cosine similarity search against image alt text embeddings.
+- Return the results.
+
+## Recap
+
+![pipeline diagram](./readme-screenshots/image-2.png)
