@@ -1,0 +1,9 @@
+FROM go:alpine 
+
+WORKDIR /indexer
+
+COPY . . 
+
+RUN go build -o indexer . 
+
+CMD [ "./indexer" ]

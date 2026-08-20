@@ -1,5 +1,10 @@
+import { loadEnvFile } from "node:process";
+
+loadEnvFile();
+
+const EMBEDDING = process.env.EMBEDDING_URL;
 export async function embed(text: string) {
-    const response = await fetch("http://localhost:1234/embed", {
+    const response = await fetch(`${EMBEDDING}/embed`, {
         method: "POST",
         body: JSON.stringify({
             inputs: text,

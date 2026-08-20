@@ -18,12 +18,13 @@ import {
 import { BM25Page, EmbeddingPage, Term } from "@/types/page.js";
 import { BM25Params } from "@/types/bm25.js";
 import { rrf } from "@/util/rrf.js";
+import cors from "cors";
 
 loadEnvFile();
 
 export const app = express();
 const PORT = process.env.PORT;
-const POSTGRES = process.env["POSTGRES_DB"];
+const POSTGRES = process.env.POSTGRES_DB;
 
 const dbClient = await initDb(POSTGRES);
 
@@ -31,7 +32,7 @@ const dbClient = await initDb(POSTGRES);
 app.use(helmet());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-// app.use(cors());
+app.use(cors());
 
 app.get("/", (req, res) => {
     console.log(req.method, req.host, req.hostname);

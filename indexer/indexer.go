@@ -150,9 +150,9 @@ func indexPage(pd *db.PageData, pgDb *internal.Queries, ctx context.Context) err
 	}
 	log.Printf("Created outgoing Blank Pages for page: %v", page.Url)
 	// image stuff here
-	var urls = make([]string, len(pd.ImageMap))
-	var altTexts = make([]string, len(pd.ImageMap))
-	var embeddings = make([]pgvector.Vector, len(pd.ImageMap))
+	var urls = make([]string, 0, len(pd.ImageMap))
+	var altTexts = make([]string, 0, len(pd.ImageMap))
+	var embeddings = make([]pgvector.Vector, 0, len(pd.ImageMap))
 
 	for imgURL, altText := range pd.ImageMap {
 		altTextModelOutput, err := util.Embed(altText)
@@ -167,6 +167,7 @@ func indexPage(pd *db.PageData, pgDb *internal.Queries, ctx context.Context) err
 		embeddings = append(embeddings, embedding)
 
 	}
+
 	err = pgDb.CreateImages(ctx, internal.CreateImagesParams{
 		Urls:       urls,
 		Alttexts:   altTexts,

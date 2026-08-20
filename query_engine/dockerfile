@@ -1,0 +1,14 @@
+FROM node:26-alpine 
+
+WORKDIR /query_engine
+
+COPY package*.json ./
+
+RUN npm ci 
+
+COPY . .
+
+RUN npm run build
+
+CMD ["npm", "run", "start"]
+

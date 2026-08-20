@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"log"
-	"os"
 	"sync"
 
 	_ "embed"
@@ -11,6 +10,7 @@ import (
 	"github.com/1gazzar1/gazoogle/indexer/constants"
 	"github.com/1gazzar1/gazoogle/indexer/db"
 	"github.com/1gazzar1/gazoogle/indexer/internal"
+	"github.com/1gazzar1/gazoogle/indexer/util"
 	"github.com/jackc/pgx/v5"
 	_ "github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -23,19 +23,11 @@ import (
 //go:embed db/schema.sql
 var schema string
 
-func GetSafeEnv(env string) string {
-	val := os.Getenv(env)
-	if val == "" {
-		log.Fatalf("Failed to load env var with name: %v", env)
-	}
-	return val
-}
-
 func main() {
 	godotenv.Load()
 
-	REDIS := GetSafeEnv("REDIS_DB")
-	POSTGRES := GetSafeEnv("POSTGRES_DB")
+	REDIS := util.GetSafeEnv("REDIS_DB")
+	POSTGRES := util.GetSafeEnv("POSTGRES_DB")
 
 	ctx := context.Background()
 
@@ -80,6 +72,7 @@ func connectToPg(connectionString string, ctx context.Context) *pgxpool.Pool {
 		return pgvex.RegisterTypes(ctx, conn)
 	}
 	pool, err := pgxpool.NewWithConfig(ctx, config)
+
 	if err != nil {
 		log.Fatalf("failed to connect to postgres: %v", err)
 	}

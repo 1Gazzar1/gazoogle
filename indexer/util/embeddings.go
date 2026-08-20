@@ -6,12 +6,18 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 )
 
 // to get embeddings, i'll use a docker image to do that
 // and i'll talk to it by just making post reqs
 
 func Embed(text string) ([]float32, error) {
+	EMBEDDING := GetSafeEnv("EMBEDDING_URL")
+	if EMBEDDING == "" {
+		return nil, fmt.Errorf("EMBEDDING_URL environment variable is empty or unset")
+	}
+
 	type EmbedRequest struct {
 		Inputs string `json:"inputs"`
 	}
@@ -25,9 +31,11 @@ func Embed(text string) ([]float32, error) {
 		return nil, err
 	}
 
-	// TODO : REPLACE CONNECTION STRING WITH ENV VAR 
+	// Safely trim trailing slash to avoid double-slash bug ("//embed")
+	url := fmt.Sprintf("%s/embed", strings.TrimRight(EMBEDDING, "/"))
+
 	resp, err := http.Post(
-		"http://localhost:1234/embed",
+		url,
 		"application/json",
 		bytes.NewReader(bodyBytes),
 	)
@@ -40,6 +48,11 @@ func Embed(text string) ([]float32, error) {
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to read body of embedding respose: %w", err)
+	}
+
+	// Check if HTTP request returned non-200 status code
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("Embedding server status %d: %s", resp.StatusCode, string(respBody))
 	}
 
 	var o [][]float32

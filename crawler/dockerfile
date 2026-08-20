@@ -1,0 +1,9 @@
+FROM go:alpine
+
+WORKDIR /crawler
+
+COPY . . 
+
+RUN go build -o crawler . 
+
+CMD [ "./crawler" ]

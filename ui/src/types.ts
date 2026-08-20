@@ -1,0 +1,30 @@
+/* === Types shared across UI === */
+
+export interface SearchResult {
+  id: number;
+  url: string;
+  heading: string;
+  title: string;
+  type: 'bm25' | 'embedding' | 'both';
+  bm25Score?: number;
+  terms?: { term: string; tf: number; df: number }[];
+}
+
+export interface ImageResult {
+  id: number;
+  url: string;
+  alt: string;
+  src: string;
+}
+
+export interface SearchResponse {
+  corrected: boolean;
+  q: string[];
+  results: SearchResult[];
+}
+
+export interface ImagesResponse {
+  images: ImageResult[];
+}
+
+export type SearchView = 'web' | 'images';

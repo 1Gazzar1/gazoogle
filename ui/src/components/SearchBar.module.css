@@ -1,0 +1,130 @@
+.form {
+  width: 100%;
+}
+
+.wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  background: var(--bg-input);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-xl);
+  padding: 0 var(--space-2);
+  transition:
+    border-color var(--transition-fast),
+    background var(--transition-fast),
+    box-shadow var(--transition-fast);
+}
+
+.wrapper:focus-within {
+  border-color: var(--border-active);
+  background: var(--bg-input-focus);
+  box-shadow: 0 0 0 3px rgba(79, 142, 247, 0.12), var(--shadow-glow);
+}
+
+/* Compact mode (used in header on results page) */
+.compact .wrapper {
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-xl);
+}
+
+.icon {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  color: var(--text-secondary);
+  margin-left: var(--space-3);
+  transition: color var(--transition-fast);
+  pointer-events: none;
+}
+
+.wrapper:focus-within .icon {
+  color: var(--accent-1);
+}
+
+.input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  font-family: var(--font-body);
+  font-size: 1.05rem;
+  color: var(--text-primary);
+  padding: var(--space-4) var(--space-3);
+  min-width: 0;
+
+  /* Remove browser default search decorations */
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.compact .input {
+  font-size: 0.95rem;
+  padding: var(--space-3) var(--space-3);
+}
+
+.input::placeholder {
+  color: var(--text-muted);
+}
+
+/* Remove default search clear button */
+.input::-webkit-search-cancel-button {
+  display: none;
+}
+
+.clear {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  background: transparent;
+  border-radius: var(--radius-pill);
+  color: var(--text-muted);
+  transition: color var(--transition-fast), background var(--transition-fast);
+}
+
+.clear:hover {
+  color: var(--text-primary);
+  background: var(--border-subtle);
+}
+
+.clear svg {
+  width: 14px;
+  height: 14px;
+}
+
+.submit {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  margin-right: var(--space-1);
+  background: var(--accent-gradient);
+  border-radius: var(--radius-pill);
+  color: white;
+  transition: opacity var(--transition-fast), transform var(--transition-fast), box-shadow var(--transition-fast);
+  box-shadow: 0 2px 12px rgba(79, 142, 247, 0.35);
+}
+
+.compact .submit {
+  width: 30px;
+  height: 30px;
+}
+
+.submit:hover {
+  opacity: 0.9;
+  transform: scale(1.05);
+  box-shadow: 0 4px 20px rgba(79, 142, 247, 0.5);
+}
+
+.submit:active {
+  transform: scale(0.97);
+}
+
+.submit svg {
+  width: 16px;
+  height: 16px;
+}

@@ -1,0 +1,72 @@
+x-common-env: &common-env
+  REDIS_DB: redis://redis:6379
+  POSTGRES_DB: postgres://gazoogle:gazoogle@postgres:5432/gazoogle
+  EMBEDDING_URL: http://embedding:80
+  VITE_API_URL: http://query_engine:8080
+services:
+  crawler:
+    build:
+      context: ./crawler
+      dockerfile: dockerfile
+    depends_on:
+      - redis
+    restart: "always"
+    environment:
+      <<: *common-env
+
+  indexer:
+    build:
+      context: ./indexer
+      dockerfile: dockerfile
+    depends_on:
+      - redis
+      - postgres
+      - embedding
+    restart: "always"
+    environment:
+      <<: *common-env
+
+  query_engine:
+    build:
+      context: ./query_engine
+      dockerfile: dockerfile
+    depends_on:
+      - postgres
+      - embedding
+    restart: "always"
+    environment:
+      <<: *common-env
+
+    ports:
+      - "8080:8080"
+
+  ui:
+    build:
+      context: ./ui
+      dockerfile: dockerfile
+
+    restart: "always"
+    environment:
+      <<: *common-env
+    ports:
+      - "80:80"
+
+  redis:
+    image: redis:latest
+    restart: "always"
+    ports:
+      - "6379:6379"
+  postgres:
+    image: postgres:latest
+    restart: "always"
+    environment:
+      - POSTGRES_DB=gazoogle
+      - POSTGRES_USER=gazoogle
+      - POSTGRES_PASSWORD=gazoogle
+    ports:
+      - "5432:5432"
+  embedding:
+    image: ghcr.io/huggingface/text-embeddings-inference:cpu-latest
+    command: ["--model-id", "sentence-transformers/all-MiniLM-L6-v2"]
+    ports:
+      - "1234:80"
