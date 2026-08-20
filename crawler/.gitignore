@@ -2,3 +2,4 @@ test.go
 crawler.log
 .env
 crawler
+metrics.json

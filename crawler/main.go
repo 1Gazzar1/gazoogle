@@ -22,18 +22,20 @@ func GetSafeEnv(env string) string {
 func main() {
 	godotenv.Load()
 	DB_URL := GetSafeEnv("REDIS_DB")
-	wg := &sync.WaitGroup{}
-
+	cnf := config{
+		mu: &sync.Mutex{},
+		wg: &sync.WaitGroup{},
+	}
 	db.InitRedis(DB_URL)
 
 	fmt.Println("starting the crawler")
 
 	for range constants.Workers {
-		wg.Add(1)
-		go worker(wg, constants.PageLimit)
+		cnf.wg.Add(1)
+		go cnf.worker(constants.PageLimit)
 	}
 	db.AddPageToPriorityQueue(constants.StartPage)
 
-	wg.Wait()
+	cnf.wg.Wait()
 
 }

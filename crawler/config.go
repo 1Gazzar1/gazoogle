@@ -12,6 +12,11 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
+type config struct {
+	mu *sync.Mutex
+	wg *sync.WaitGroup
+}
+
 // redis handles all that so that's not necassary
 
 // func (cnf *config) ifPageNotExistThenAdd(URL string) (exists bool, currentLenght int) {
@@ -59,8 +64,8 @@ func unClaimPage(URL string) {
 		log.Printf("Failed to add page while crawling: %v", err)
 	}
 }
-func worker(wg *sync.WaitGroup, limit int) {
-	defer wg.Done()
+func (cnf *config) worker(limit int) {
+	defer cnf.wg.Done()
 	for {
 		// Checking if the limit is reached before each time we scrape a new page
 		n, err := db.GetSetLen()
@@ -85,10 +90,10 @@ func worker(wg *sync.WaitGroup, limit int) {
 		}
 
 		// finally crawl a page
-		crawlOnePage("", true)
+		cnf.crawlOnePage("", true)
 	}
 }
-func crawlOnePage(URL string, internal bool) {
+func (cnf *config) crawlOnePage(URL string, internal bool) {
 	// cnf.sem <- struct{}{}
 
 	// defer func() {
@@ -99,6 +104,10 @@ func crawlOnePage(URL string, internal bool) {
 	// }()
 	// so i can use = instead of := and handle scope correctly
 	var err error
+	start := time.Now()
+	defer func() {
+		cnf.writeMetric(fmt.Sprintf("Scraped %v Successfully!", URL), int(time.Since(start)), err)
+	}()
 	if internal {
 		URL, err = db.PopPageFromPriorityQueue()
 		if err == redis.Nil {

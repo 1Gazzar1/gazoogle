@@ -20,9 +20,7 @@ import (
 )
 
 func worker(wg *sync.WaitGroup, pgDb *pgxpool.Pool, queries *internal.Queries, ctx context.Context) {
-	defer func() {
-		wg.Done()
-	}()
+	defer wg.Done()
 	for {
 		num, err := queries.GetDocCount(ctx)
 		if err != nil {
@@ -72,6 +70,11 @@ func doWithTx(pd *db.PageData, db *pgxpool.Pool, ctx context.Context, queries *i
 }
 
 func indexPage(pd *db.PageData, pgDb *internal.Queries, ctx context.Context) error {
+	var err error
+	var start = time.Now()
+	defer func() {
+		writeMetric(fmt.Sprintf("Indexed %v Successfully!", pd.URL), int(time.Since(start)), err)
+	}()
 
 	originalText, wordStems, tokens, output, err := util.BuildPageWithWeightTF(pd.HTML)
 	if err != nil {
