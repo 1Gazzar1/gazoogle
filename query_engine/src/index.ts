@@ -20,7 +20,11 @@ import { BM25Params } from "@/types/bm25.js";
 import { rrf, RRFPage } from "@/util/rrf.js";
 import cors from "cors";
 import { start } from "node:repl";
-import { getBacklinkCount } from "@/internal/links_sql.js";
+import {
+    getBacklinkCount,
+    getBacklinks,
+    getForwardlinks,
+} from "@/internal/links_sql.js";
 import { getBacklinkBoost } from "@/util/backlinkBoost.js";
 
 loadEnvFile();
@@ -253,6 +257,32 @@ app.get("/images", async (req, res) => {
 
     res.status(200).json({
         images,
+    });
+});
+// gets the forward and back links to a page
+// for a nice ui page
+app.get("/links/:id", async (req, res) => {
+    const id = Number.parseInt(req.params.id);
+    if (Number.isNaN(id))
+        throw ERRORS.BAD_REQUEST(
+            "path parameter invalid, insert a valid id number",
+        );
+
+    const backlinks = await getBacklinks(dbClient, {
+        pageId: id,
+    });
+    const forwardlinks = await getForwardlinks(dbClient, {
+        pageId: id,
+    });
+
+    if (backlinks.length + forwardlinks.length <= 0)
+        throw ERRORS.NOTFOUND(
+            "the page litteraly has no forward or back links, what are you seraching ??, how was it even discovered ? 🤨",
+        );
+    // if title is null it means it wasn't indexed yet
+    res.status(200).json({
+        backlinks,
+        forwardlinks,
     });
 });
 
