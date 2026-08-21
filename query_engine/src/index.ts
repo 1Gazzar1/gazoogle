@@ -19,6 +19,7 @@ import { BM25Page, EmbeddingPage, Term } from "@/types/page.js";
 import { BM25Params } from "@/types/bm25.js";
 import { rrf } from "@/util/rrf.js";
 import cors from "cors";
+import { start } from "node:repl";
 
 loadEnvFile();
 
@@ -34,21 +35,38 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cors());
 
+app.use((req, _, next) => {
+    const start = Date.now();
+    req.on("close", () => {
+        console.info(`${req.url} took ${Date.now() - start}ms`);
+    });
+    next();
+});
+
 app.get("/", (req, res) => {
     console.log(req.method, req.host, req.hostname);
     res.json("Hello world");
 });
 app.get("/search", async (req, res) => {
+    const startTime = Date.now();
+
     const q = req.query["q"] as string;
     const qWords = cleanQuery(q);
 
+    const cleanTime = Date.now() - startTime;
+
     if (qWords.length <= 0) throw ERRORS.BAD_REQUEST("enter a valid query bro");
 
+    const dbVocabStartTime = Date.now();
     const vocabTable = await getAllVocab(dbClient);
+    const dbVocabTime = Date.now() - dbVocabStartTime;
+
     const vocabStems: Record<string, string> = {};
     vocabTable.forEach((row) => {
         vocabStems[row.word] = row.stem;
     });
+
+    const correctionStartTime = Date.now();
 
     let corrected = false;
 
@@ -64,6 +82,7 @@ app.get("/search", async (req, res) => {
         }
         return word;
     });
+    const correctionTime = Date.now() - correctionStartTime;
 
     if (finalQuery.length <= 0)
         throw ERRORS.BAD_REQUEST(
@@ -71,19 +90,28 @@ app.get("/search", async (req, res) => {
         );
 
     const stems = finalQuery.map((q) => vocabStems[q]);
+
+    const dbBM25StartTime = Date.now();
     // this gets a JOIN of 3 tables ( postings, terms and pages ) to gather all data to calc bm25
     const data = await getPagesBytWords(dbClient, {
         words: stems,
     });
+    const dbBM25ime = Date.now() - dbBM25StartTime;
 
     if (!data || data.length <= 0)
         throw ERRORS.NOTFOUND("no bm25 results, somehow ?");
 
+    const embeddingStartTime = Date.now();
     const qEmbedding = await embed(q); // i decided to embed the actual query and not the cleaned version,
+    const embeddingTime = Date.now() - embeddingStartTime;
+
+    const dbEmbeddingStartTime = Date.now();
     const _embeddingResults = await searchPageEmbeddings(dbClient, {
         embedding: JSON.stringify(qEmbedding),
         count: SearchLimit,
     });
+    const dbEmbeddingTime = Date.now() - dbEmbeddingStartTime;
+
     if (!_embeddingResults || _embeddingResults.length <= 0)
         throw ERRORS.NOTFOUND("no embedding results, somehow ?");
 
@@ -97,10 +125,14 @@ app.get("/search", async (req, res) => {
         };
     });
 
+    const dbMetadataStartTime = Date.now();
     const docsInfo = await getDocInfo(dbClient);
+    const dbMetadataTime = Date.now() - dbMetadataStartTime;
 
     if (!docsInfo) throw ERRORS.INTERNAL("failed to get doc info :(");
 
+    // normalizing the calculating bm25
+    const bm25StartTime = Date.now();
     const resultsMap: Record<string, BM25Page> = {};
     for (const row of data) {
         const params: BM25Params = {
@@ -140,20 +172,36 @@ app.get("/search", async (req, res) => {
             ],
         };
     }
+    const bm25Time = Date.now() - bm25StartTime;
 
     const bm25Results = Object.values(resultsMap);
     bm25Results.sort((a, b) => b.bm25Score - a.bm25Score);
 
     // rrf to combine both results into one
+    const rrfStartTime = Date.now();
     const finalResult = rrf(
         bm25Results.slice(0, SearchLimit), // only take the best 100 pages from bm25, if you take all, embedding will almost always win
         embeddingResults,
     );
+    const rrfTime = Date.now() - rrfStartTime;
 
+    const endTime = Date.now() - startTime;
     res.status(200).json({
         corrected,
         q: finalQuery,
         results: finalResult.slice(0, 10),
+        durations: {
+            totalTime: endTime,
+            cleanTime, // including tokenization and cleaning
+            dbVocabTime,
+            dbBM25ime, // JOIN query
+            dbMetadataTime,
+            embddingCosineSearch: dbEmbeddingTime, // cosine search
+            embeddingTime, // embedding user query
+            spellCorrectionTime: correctionTime, // levenshtien
+            bm25Time, // calculating the normalizing
+            rrfTime,
+        },
     });
 });
 
