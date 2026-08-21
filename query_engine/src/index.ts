@@ -17,9 +17,11 @@ import {
 } from "@/internal/embeddings_sql.js";
 import { BM25Page, EmbeddingPage, Term } from "@/types/page.js";
 import { BM25Params } from "@/types/bm25.js";
-import { rrf } from "@/util/rrf.js";
+import { rrf, RRFPage } from "@/util/rrf.js";
 import cors from "cors";
 import { start } from "node:repl";
+import { getBacklinkCount } from "@/internal/links_sql.js";
+import { getBacklinkBoost } from "@/util/backlinkBoost.js";
 
 loadEnvFile();
 
@@ -179,11 +181,37 @@ app.get("/search", async (req, res) => {
 
     // rrf to combine both results into one
     const rrfStartTime = Date.now();
-    const finalResult = rrf(
+    const rrfResults = rrf(
         bm25Results.slice(0, SearchLimit), // only take the best 100 pages from bm25, if you take all, embedding will almost always win
         embeddingResults,
     );
     const rrfTime = Date.now() - rrfStartTime;
+
+    const dbBacklinkStartTime = Date.now();
+    const backlinks = await getBacklinkCount(dbClient, {
+        linkIds: rrfResults.map((r) => r.id),
+    });
+    const dbBacklinkTime = Date.now() - dbBacklinkStartTime;
+
+    const idToBacklinkCount: Record<number, number> = {};
+    for (const row of backlinks) {
+        idToBacklinkCount[row.toPageId] = +row.backlinkCount;
+    }
+    // adding backlinkcount as a param
+    const finalResult = rrfResults.map((p) => {
+        const backlinkCount = idToBacklinkCount[p.id] ?? 0;
+        const out: RRFPage = {
+            ...p,
+            backlinkCount,
+        };
+        return out;
+    });
+    // applying boost and sorting
+    finalResult.sort(
+        (a, b) =>
+            getBacklinkBoost(b.backlinkCount!) * b.rrfScore -
+            getBacklinkBoost(a.backlinkCount!) * a.rrfScore,
+    );
 
     const endTime = Date.now() - startTime;
     res.status(200).json({
@@ -194,6 +222,7 @@ app.get("/search", async (req, res) => {
             totalTime: endTime,
             cleanTime, // including tokenization and cleaning
             dbVocabTime,
+            dbBacklinkTime,
             dbBM25ime, // JOIN query
             dbMetadataTime,
             embddingCosineSearch: dbEmbeddingTime, // cosine search

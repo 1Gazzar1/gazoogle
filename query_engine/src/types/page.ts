@@ -3,6 +3,7 @@ export interface BasePage {
     url: string;
     heading: string;
     title: string;
+    backlinkCount?: number;
 }
 
 export interface EmbeddingPage extends BasePage {
