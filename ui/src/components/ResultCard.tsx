@@ -5,6 +5,7 @@ import styles from './ResultCard.module.css';
 interface Props {
   result: SearchResult;
   index: number;
+  onOpenGraph?: (id: number) => void;
 }
 
 function getDomain(url: string) {
@@ -24,7 +25,7 @@ function getFavicon(url: string) {
   }
 }
 
-export default function ResultCard({ result, index }: Props) {
+export default function ResultCard({ result, index, onOpenGraph }: Props) {
   const domain = getDomain(result.url);
   const favicon = getFavicon(result.url);
 
@@ -67,8 +68,27 @@ export default function ResultCard({ result, index }: Props) {
         </a>
       </h2>
 
-      {/* URL breadcrumb */}
-      <p className={styles.url}>{result.url}</p>
+      {/* URL breadcrumb & Graph button */}
+      <div className={styles.urlRow}>
+        <p className={styles.url}>{result.url}</p>
+        {onOpenGraph && (
+          <button 
+            className={styles.graphBtn} 
+            onClick={() => onOpenGraph(result.id)}
+            aria-label="View page graph"
+            title="View page graph"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <circle cx="18" cy="5" r="3"></circle>
+              <circle cx="6" cy="12" r="3"></circle>
+              <circle cx="18" cy="19" r="3"></circle>
+              <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+              <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+            </svg>
+            Graph
+          </button>
+        )}
+      </div>
 
       {/* Heading / snippet */}
       {result.heading && (
@@ -83,6 +103,13 @@ export default function ResultCard({ result, index }: Props) {
               {t.term}
             </span>
           ))}
+        </div>
+      )}
+
+      {/* BM25 Score */}
+      {result.bm25Score !== undefined && (
+        <div className={styles.scoreInfo}>
+          BM25 Score: <strong>{result.bm25Score.toFixed(3)}</strong>
         </div>
       )}
     </article>

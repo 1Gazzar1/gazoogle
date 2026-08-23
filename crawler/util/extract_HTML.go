@@ -128,7 +128,11 @@ func extractURLs(HTML string, baseURL *url.URL) (OutgoingLinks []string, err err
 			}
 		}
 
-		OutgoingLinks = append(OutgoingLinks, u.String())
+		norm, err := NormalizeURL(u.String())
+		if err != nil {
+			return
+		}
+		OutgoingLinks = append(OutgoingLinks, norm)
 	})
 	return OutgoingLinks, nil
 }
@@ -152,7 +156,11 @@ func extractImages(HTML string, baseURL *url.URL) (ImageMap map[string]string, e
 
 		u = baseURL.ResolveReference(u)
 
-		ImageMap[u.String()] = altText
+		norm, err := NormalizeURL(u.String())
+		if err != nil {
+			return
+		}
+		ImageMap[norm] = altText
 	})
 	return ImageMap, nil
 }

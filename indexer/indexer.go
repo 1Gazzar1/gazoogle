@@ -69,11 +69,11 @@ func doWithTx(pd *db.PageData, db *pgxpool.Pool, ctx context.Context, queries *i
 	return tx.Commit(ctx)
 }
 
-func indexPage(pd *db.PageData, pgDb *internal.Queries, ctx context.Context) error {
+func indexPage(pd *db.PageData, pgDb *internal.Queries, ctx context.Context) (returnedError error) {
 	var err error
 	var start = time.Now()
 	defer func() {
-		writeMetric(fmt.Sprintf("Indexed %v Successfully!", pd.URL), int(time.Since(start)), err)
+		writeMetric(fmt.Sprintf("Indexed %v Successfully!", pd.URL), int(time.Since(start)), returnedError)
 	}()
 
 	originalText, wordStems, tokens, output, err := util.BuildPageWithWeightTF(pd.HTML)
@@ -134,6 +134,9 @@ func indexPage(pd *db.PageData, pgDb *internal.Queries, ctx context.Context) err
 	pgDb.CreateVocabs(ctx, internal.CreateVocabsParams{Column1: ogWords, Column2: stems})
 
 	// we do this now so the updating links doesn't crash
+	// sort the outgoing links too to solve the deadlock issue via locking rows like in terms table
+
+	sort.Strings(pd.OutgoingLinks)
 	ids, err := pgDb.CreateBlankPages(ctx, pd.OutgoingLinks)
 	if err != nil {
 		return fmt.Errorf("failed to create pages in bulk: %v", err)

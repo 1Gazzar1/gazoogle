@@ -1,5 +1,5 @@
 x-common-env: &common-env
-  REDIS_DB: redis://redis:6379
+  REDIS_DB: redis:6379
   POSTGRES_DB: postgres://gazoogle:gazoogle@postgres:5432/gazoogle
   EMBEDDING_URL: http://embedding:80
   VITE_API_URL: http://query_engine:8080
@@ -52,21 +52,23 @@ services:
       - "80:80"
 
   redis:
-    image: redis:latest
+    image: redis:8
     restart: "always"
     ports:
       - "6379:6379"
   postgres:
-    image: postgres:latest
+    image: pgvector/pgvector:pg18-trixie # pgvector image is identical to postgres but has the pgvector extension
     restart: "always"
     environment:
       - POSTGRES_DB=gazoogle
       - POSTGRES_USER=gazoogle
       - POSTGRES_PASSWORD=gazoogle
     ports:
-      - "5432:5432"
+      - "5555:5432" # 5432 was already in use lol 
   embedding:
     image: ghcr.io/huggingface/text-embeddings-inference:cpu-latest
     command: ["--model-id", "sentence-transformers/all-MiniLM-L6-v2"]
     ports:
       - "1234:80"
+    volumes:
+      - "~/data:/data" # this will create 

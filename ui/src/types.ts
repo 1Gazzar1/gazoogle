@@ -13,8 +13,7 @@ export interface SearchResult {
 export interface ImageResult {
   id: number;
   url: string;
-  alt: string;
-  src: string;
+  altText: string;
 }
 
 export interface SearchResponse {

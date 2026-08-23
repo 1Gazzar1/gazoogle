@@ -11,17 +11,19 @@ const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:8080";
 interface Props {
     initialQuery: string;
     onHome: () => void;
+    onOpenGraph: (pageId: number) => void;
 }
 
 type Status = "idle" | "loading" | "error" | "success";
 
-export default function ResultsPage({ initialQuery, onHome }: Props) {
+export default function ResultsPage({ initialQuery, onHome, onOpenGraph }: Props) {
     const [query, setQuery] = useState(initialQuery);
     const [view, setView] = useState<SearchView>("web");
     const [status, setStatus] = useState<Status>("idle");
     const [webData, setWebData] = useState<SearchResponse | null>(null);
     const [imgData, setImgData] = useState<ImagesResponse | null>(null);
     const [error, setError] = useState<string>("");
+    
 
     const fetchWeb = useCallback(async (q: string) => {
         setStatus("loading");
@@ -71,6 +73,7 @@ export default function ResultsPage({ initialQuery, onHome }: Props) {
     useEffect(() => {
         if (view === "web") {
             fetchWeb(query);
+            fetchImages(query);
         } else {
             fetchImages(query);
         }
@@ -207,56 +210,69 @@ export default function ResultsPage({ initialQuery, onHome }: Props) {
 
                 {/* Web results */}
                 {status === "success" && view === "web" && webData && (
-                    <section aria-label="Web search results">
-                        {/* Correction notice */}
-                        {webData.corrected && (
-                            <div
-                                className={styles.correctionBanner}
-                                role="status"
-                            >
-                                <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    strokeWidth="2"
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    aria-hidden="true"
+                    <div className={styles.webLayout}>
+                        <section aria-label="Web search results" className={styles.webResults}>
+                            {/* Correction notice */}
+                            {webData.corrected && (
+                                <div
+                                    className={styles.correctionBanner}
+                                    role="status"
                                 >
-                                    <circle cx="12" cy="12" r="10" />
-                                    <line x1="12" y1="8" x2="12" y2="12" />
-                                    <line x1="12" y1="16" x2="12.01" y2="16" />
-                                </svg>
-                                Showing results for{" "}
-                                <strong>{webData.q.join(" ")}</strong>
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        strokeWidth="2"
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        aria-hidden="true"
+                                    >
+                                        <circle cx="12" cy="12" r="10" />
+                                        <line x1="12" y1="8" x2="12" y2="12" />
+                                        <line x1="12" y1="16" x2="12.01" y2="16" />
+                                    </svg>
+                                    Showing results for{" "}
+                                    <strong>{webData.q.join(" ")}</strong>
+                                </div>
+                            )}
+
+                            <p className={styles.resultCount}>
+                                {webData.results.length} result
+                                {webData.results.length !== 1 ? "s" : ""}
+                            </p>
+
+                            <div className={styles.resultsList}>
+                                {webData.results.map((r, i) => (
+                                    <ResultCard key={r.id} result={r} index={i} onOpenGraph={onOpenGraph} />
+                                ))}
                             </div>
+
+                            {webData.results.length === 0 && (
+                                <div className={styles.emptyState}>
+                                    <p
+                                        className={styles.emptyIcon}
+                                        aria-hidden="true"
+                                    >
+                                        🔍
+                                    </p>
+                                    <h2>No results found</h2>
+                                    <p>Try a different search term.</p>
+                                </div>
+                            )}
+                        </section>
+
+                        {imgData && imgData.images.length > 0 && (
+                            <aside className={styles.webImages} aria-label="Top images">
+                                <h3>Images</h3>
+                                <div className={styles.webImageGrid}>
+                                    {imgData.images.slice(0, 5).map((img, i) => (
+                                        <ImageCard key={img.id} image={img} index={i} />
+                                    ))}
+                                </div>
+                            </aside>
                         )}
-
-                        <p className={styles.resultCount}>
-                            {webData.results.length} result
-                            {webData.results.length !== 1 ? "s" : ""}
-                        </p>
-
-                        <div className={styles.resultsList}>
-                            {webData.results.map((r, i) => (
-                                <ResultCard key={r.id} result={r} index={i} />
-                            ))}
-                        </div>
-
-                        {webData.results.length === 0 && (
-                            <div className={styles.emptyState}>
-                                <p
-                                    className={styles.emptyIcon}
-                                    aria-hidden="true"
-                                >
-                                    🔍
-                                </p>
-                                <h2>No results found</h2>
-                                <p>Try a different search term.</p>
-                            </div>
-                        )}
-                    </section>
+                    </div>
                 )}
 
                 {/* Image results */}

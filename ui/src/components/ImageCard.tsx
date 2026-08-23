@@ -15,12 +15,12 @@ export default function ImageCard({ image, index }: Props) {
       rel="noopener noreferrer"
       className={styles.card}
       style={{ animationDelay: `${index * 40}ms` }}
-      aria-label={image.alt || 'Image result'}
+      aria-label={image.altText || 'Image result'}
     >
       <div className={styles.imgWrapper}>
         <img
-          src={image.src}
-          alt={image.alt}
+          src={image.url}
+          alt={image.altText}
           className={styles.img}
           loading="lazy"
           onError={(e) => {
@@ -29,8 +29,8 @@ export default function ImageCard({ image, index }: Props) {
           }}
         />
       </div>
-      {image.alt && (
-        <p className={styles.caption}>{image.alt}</p>
+      {image.altText && (
+        <p className={styles.caption}>{image.altText}</p>
       )}
     </a>
   );

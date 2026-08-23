@@ -54,7 +54,7 @@ func writeMetric(text string, durationMs int, incomingErr error) {
 	var mType MetricType = Success
 	var mText string = text
 	if incomingErr != nil {
-		mType = Success
+		mType = Error
 		mText = incomingErr.Error()
 	}
 	m := metric{

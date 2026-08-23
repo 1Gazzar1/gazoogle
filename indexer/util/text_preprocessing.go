@@ -11,7 +11,7 @@ import (
 )
 
 var bannedClasses = `.reference,.reflist,.navbox,.vertical-navbox,.metadata,.mw-editsection,.catlinks,.toc,.hatnote,.thumb,.magnify,.noprint`
-var bannedTags = `script,style,noscript,template,svg,canvas,iframe,object,embed,head,meta,link,base,source,picture,audio,video,track,param,form,input,textarea,button,select,option,datalist,output,label,fieldset,legend,dialog,menu,portal,sup`
+var bannedTags = `nav,footer,aside,script,style,noscript,template,svg,canvas,iframe,object,embed,head,meta,link,base,source,picture,audio,video,track,param,form,input,textarea,button,select,option,datalist,output,label,fieldset,legend,dialog,menu,portal,sup`
 
 var specialCharRegex = regexp.MustCompile(`[^a-zA-Z0-9]+`)
 

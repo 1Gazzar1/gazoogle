@@ -8,6 +8,6 @@ const (
 	// ------------------------------------------
 	StartPage         = "https://en.wikipedia.org/wiki/Ultrakill" // first page we scrape
 	Workers           = 10                                        // no of workers
-	IndexerQueueLimit = 100                                       // meaning if the queue is bigger than 100 in size we slow scrapping down
+	IndexerQueueLimit = 5000                                      // meaning if the queue is bigger than 100 in size we slow scrapping down
 	PageLimit         = 1000000                                   // we stop scraping if we reach this number
 )
