@@ -169,14 +169,20 @@ func (cnf *config) crawlOnePage(URL string, internal bool) {
 		if exists, _ := db.ExistsInPageSet(normURL); exists {
 			continue
 		}
+
+		l, err := db.GetPriorityQueueLen()
+		if err != nil {
+			continue
+		}
+		// if the queue is larger than the acutal limit then just don't add, we'll proabably not reach it anyways
+		if l >= constants.PageLimit {
+			continue
+		}
 		// add to redis priority queue
 		err = db.AddPageToPriorityQueue(normURL)
 		if err != nil {
 			log.Printf("Failed to add page while crawling: %v", err)
 			continue
 		}
-
 	}
-	// this way it recursively scrapes the whole internet
-
 }
