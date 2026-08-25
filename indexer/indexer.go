@@ -88,7 +88,11 @@ func (cnf *config) indexPage(pd *db.PageData, pgDb *internal.Queries) (termsChPa
 	if err != nil {
 		return termsChPayload, blankPagesChPayload, fmt.Errorf("Embedding Model Failed: %w", err)
 	}
-	embedding := pgvector.NewVector(modelOutput)
+	vector, ok := modelOutput.([]float32)
+	if !ok {
+		return termsChPayload, blankPagesChPayload, fmt.Errorf("Wrong Model output type: %w", err)
+	}
+	embedding := pgvector.NewVector(vector)
 
 	var docLength int
 	for _, token := range tokens {
@@ -113,20 +117,22 @@ func (cnf *config) indexPage(pd *db.PageData, pgDb *internal.Queries) (termsChPa
 	// image stuff here
 	var urls = make([]string, 0, len(pd.ImageMap))
 	var altTexts = make([]string, 0, len(pd.ImageMap))
-	var embeddings = make([]pgvector.Vector, 0, len(pd.ImageMap))
 
 	for imgURL, altText := range pd.ImageMap {
-		altTextModelOutput, err := util.Embed(altText)
-		embedding := pgvector.NewVector(altTextModelOutput)
-
-		if err != nil {
-			return termsChPayload, blankPagesChPayload, fmt.Errorf("Embedding Model Failed: %w", err)
-		}
-
 		urls = append(urls, imgURL)
 		altTexts = append(altTexts, altText)
-		embeddings = append(embeddings, embedding)
-
+	}
+	modelOutput, err = util.Embed(altTexts)
+	if err != nil {
+		return termsChPayload, blankPagesChPayload, fmt.Errorf("Embedding Model Failed: %w", err)
+	}
+	vectors, ok := modelOutput.([][]float32)
+	if !ok {
+		return termsChPayload, blankPagesChPayload, fmt.Errorf("Wrong Model output type: %w", err)
+	}
+	embeddings := make([]pgvector.Vector, 0, len(altTexts))
+	for _, vector := range vectors {
+		embeddings = append(embeddings, pgvector.NewVector(vector))
 	}
 
 	err = pgDb.CreateImages(cnf.ctx, internal.CreateImagesParams{
