@@ -6,6 +6,8 @@ const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:8080";
 
 interface Props {
   pageId: number;
+  pageTitle?: string;
+  pageUrl?: string;
   onBack: () => void;
 }
 
@@ -21,7 +23,7 @@ interface LinksData {
   forwardlinks: LinkRow[];
 }
 
-export default function GraphPage({ pageId, onBack }: Props) {
+export default function GraphPage({ pageId, pageTitle, pageUrl, onBack }: Props) {
   const [data, setData] = useState<LinksData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -73,30 +75,55 @@ export default function GraphPage({ pageId, onBack }: Props) {
     
     nodes.set(pageId, {
       id: pageId,
-      name: "Current Page",
+      name: pageTitle || "Current Page",
+      url: pageUrl || "Current Page",
       val: 8,
-      color: "#fb923c"
+      color: "#fb923c",
+      fx: 0,
+      fy: 0
     });
     
-    data.backlinks.forEach(link => {
+    const spanRad = 170 * (Math.PI / 180);
+
+    const numBack = data.backlinks.length;
+    data.backlinks.forEach((link, i) => {
+      let angle = Math.PI;
+      if (numBack > 1) {
+        angle = Math.PI - (spanRad / 2) + (spanRad * i) / (numBack - 1);
+      }
+      const radius = 150 + (i % 5) * 40;
+
       if (!nodes.has(link.fromPageId)) {
         nodes.set(link.fromPageId, {
           id: link.fromPageId,
-          name: link.title || link.url,
+          name: link.title || "Not Indexed",
+          url: link.url,
           val: 3,
-          color: "#94a3b8"
+          color: "#94a3b8",
+          fx: Math.cos(angle) * radius,
+          fy: Math.sin(angle) * radius
         });
       }
       links.push({ source: link.fromPageId, target: link.toPageId });
     });
     
-    data.forwardlinks.forEach(link => {
+    const numFwd = data.forwardlinks.length;
+    data.forwardlinks.forEach((link, i) => {
+      let angle = 0;
+      if (numFwd > 1) {
+        angle = 0 - (spanRad / 2) + (spanRad * i) / (numFwd - 1);
+      }
+      const radius = 150 + (i % 5) * 40;
+
       if (!nodes.has(link.toPageId)) {
         nodes.set(link.toPageId, {
           id: link.toPageId,
-          name: link.title || link.url,
+          name: link.title || "Not Indexed",
+          url: link.url,
           val: 3,
-          color: "#94a3b8"
+          color: "#94a3b8",
+          fx: Math.cos(angle) * radius,
+          fy: Math.sin(angle) * radius
         });
       }
       links.push({ source: link.fromPageId, target: link.toPageId });
@@ -111,7 +138,7 @@ export default function GraphPage({ pageId, onBack }: Props) {
         <button className={styles.backBtn} onClick={onBack}>
           &larr; Back to Results
         </button>
-        <h2>Page Graph</h2>
+        <h2>Page Graph: {pageTitle}</h2>
       </header>
 
       <main className={styles.content}>
@@ -125,13 +152,39 @@ export default function GraphPage({ pageId, onBack }: Props) {
                 width={dimensions.width}
                 height={dimensions.height}
                 graphData={graphData}
-                nodeLabel="name"
+                nodeLabel={(node: any) => `
+                  <div style="background: rgba(0,0,0,0.8); color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px; max-width: 300px; text-align: center;">
+                    <strong>${node.name}</strong><br/>
+                    <span style="color: #94a3b8">${node.url}</span>
+                  </div>
+                `}
                 nodeColor="color"
                 nodeRelSize={4}
+                onNodeClick={(node: any) => {
+                  if (node.url && node.url !== "Current Page") {
+                    window.open(node.url, "_blank");
+                  }
+                }}
+                nodeCanvasObject={(node: any, ctx: any, globalScale: number) => {
+                  const label = node.name;
+                  const fontSize = 12 / globalScale;
+                  ctx.font = `${fontSize}px Sans-Serif`;
+                  
+                  ctx.beginPath();
+                  ctx.arc(node.x, node.y, node.val, 0, 2 * Math.PI, false);
+                  ctx.fillStyle = node.color;
+                  ctx.fill();
+
+                  // Only draw text if we're zoomed in enough to make it readable
+                  if (globalScale >= 1.5) {
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+                    ctx.fillText(label, node.x, node.y + node.val + (fontSize));
+                  }
+                }}
                 linkColor={() => "rgba(255, 255, 255, 0.2)"}
                 backgroundColor="transparent"
-                dagMode="lr"
-                dagLevelDistance={150}
                 linkDirectionalArrowLength={3.5}
               />
             )}

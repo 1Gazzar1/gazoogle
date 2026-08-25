@@ -8,7 +8,7 @@ type AppView = 'home' | 'results' | 'graph';
 export default function App() {
   const [view, setView] = useState<AppView>('home');
   const [query, setQuery] = useState('');
-  const [graphPageId, setGraphPageId] = useState<number | null>(null);
+  const [graphPage, setGraphPage] = useState<{id: number, title: string, url: string} | null>(null);
 
   const handleSearch = (q: string) => {
     setQuery(q);
@@ -19,8 +19,8 @@ export default function App() {
     setView('home');
   };
 
-  const handleOpenGraph = (pageId: number) => {
-    setGraphPageId(pageId);
+  const handleOpenGraph = (pageId: number, title: string, url: string) => {
+    setGraphPage({ id: pageId, title, url });
     setView('graph');
   };
 
@@ -28,25 +28,29 @@ export default function App() {
     setView('results');
   };
 
-  if (view === 'results') {
-    return (
-      <ResultsPage
-        key={query}
-        initialQuery={query}
-        onHome={handleHome}
-        onOpenGraph={handleOpenGraph}
-      />
-    );
-  }
+  return (
+    <>
+      {view === 'home' && <HomePage onSearch={handleSearch} />}
+      
+      {(view === 'results' || view === 'graph') && (
+        <div style={{ display: view === 'results' ? 'block' : 'none' }}>
+          <ResultsPage
+            initialQuery={query}
+            onSearch={setQuery}
+            onHome={handleHome}
+            onOpenGraph={handleOpenGraph}
+          />
+        </div>
+      )}
 
-  if (view === 'graph' && graphPageId !== null) {
-    return (
-      <GraphPage 
-        pageId={graphPageId} 
-        onBack={handleBackToResults} 
-      />
-    );
-  }
-
-  return <HomePage onSearch={handleSearch} />;
+      {view === 'graph' && graphPage !== null && (
+        <GraphPage 
+          pageId={graphPage.id}
+          pageTitle={graphPage.title}
+          pageUrl={graphPage.url}
+          onBack={handleBackToResults} 
+        />
+      )}
+    </>
+  );
 }

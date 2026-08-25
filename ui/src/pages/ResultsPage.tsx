@@ -10,13 +10,14 @@ const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:8080";
 
 interface Props {
     initialQuery: string;
+    onSearch: (q: string) => void;
     onHome: () => void;
-    onOpenGraph: (pageId: number) => void;
+    onOpenGraph: (pageId: number, title: string, url: string) => void;
 }
 
 type Status = "idle" | "loading" | "error" | "success";
 
-export default function ResultsPage({ initialQuery, onHome, onOpenGraph }: Props) {
+export default function ResultsPage({ initialQuery, onSearch, onHome, onOpenGraph }: Props) {
     const [query, setQuery] = useState(initialQuery);
     const [view, setView] = useState<SearchView>("web");
     const [status, setStatus] = useState<Status>("idle");
@@ -24,6 +25,16 @@ export default function ResultsPage({ initialQuery, onHome, onOpenGraph }: Props
     const [imgData, setImgData] = useState<ImagesResponse | null>(null);
     const [error, setError] = useState<string>("");
     
+
+    const [debouncedQuery, setDebouncedQuery] = useState(initialQuery);
+
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setDebouncedQuery(query);
+            onSearch(query);
+        }, 1000);
+        return () => clearTimeout(timer);
+    }, [query, onSearch]);
 
     const fetchWeb = useCallback(async (q: string) => {
         setStatus("loading");
@@ -72,15 +83,17 @@ export default function ResultsPage({ initialQuery, onHome, onOpenGraph }: Props
     // Run search on mount and when query/view changes
     useEffect(() => {
         if (view === "web") {
-            fetchWeb(query);
-            fetchImages(query);
+            fetchWeb(debouncedQuery);
+            fetchImages(debouncedQuery);
         } else {
-            fetchImages(query);
+            fetchImages(debouncedQuery);
         }
-    }, [query, view, fetchWeb, fetchImages]);
+    }, [debouncedQuery, view, fetchWeb, fetchImages]);
 
     const handleSearch = (q: string) => {
         setQuery(q);
+        setDebouncedQuery(q);
+        onSearch(q);
         setWebData(null);
         setImgData(null);
     };

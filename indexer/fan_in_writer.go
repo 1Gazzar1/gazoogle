@@ -152,7 +152,16 @@ func (cnf *config) handleBlankPages(batch *[]blankPagesChInput) {
 		}
 
 		qtx := cnf.queries.WithTx(tx)
-
+		// dedup so "command cannot affect row a second time" doesn't trigger
+		seen := make(map[string]struct{}, len(blankPgs.outgoingLinks))
+		unique := make([]string, 0)
+		for _, url := range blankPgs.outgoingLinks {
+			if _, ok := seen[url]; !ok {
+				seen[url] = struct{}{}
+				unique = append(unique, url)
+			}
+		}
+		blankPgs.outgoingLinks = unique
 		sort.Strings(blankPgs.outgoingLinks)
 		ids, err := qtx.CreateBlankPages(cnf.ctx, blankPgs.outgoingLinks)
 		if err != nil {

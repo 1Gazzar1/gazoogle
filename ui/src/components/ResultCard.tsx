@@ -5,7 +5,7 @@ import styles from './ResultCard.module.css';
 interface Props {
   result: SearchResult;
   index: number;
-  onOpenGraph?: (id: number) => void;
+  onOpenGraph?: (id: number, title: string, url: string) => void;
 }
 
 function getDomain(url: string) {
@@ -74,7 +74,7 @@ export default function ResultCard({ result, index, onOpenGraph }: Props) {
         {onOpenGraph && (
           <button 
             className={styles.graphBtn} 
-            onClick={() => onOpenGraph(result.id)}
+            onClick={() => onOpenGraph(result.id, result.title || domain, result.url)}
             aria-label="View page graph"
             title="View page graph"
           >
