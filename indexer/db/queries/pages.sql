@@ -24,5 +24,5 @@ RETURNING *;
 -- to update the links, then later we update these pages 
 INSERT INTO pages (url)
 SELECT unnest($1::text[])
-ON CONFLICT DO NOTHING
+ON CONFLICT DO UPDATE SET url = EXCLUDED.url -- here excluded is the row that made the conflict, this is a trick so it would return the id even if it was already there so then we update the links correctly 
 RETURNING id;

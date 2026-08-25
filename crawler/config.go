@@ -106,7 +106,7 @@ func (cnf *config) crawlOnePage(URL string, internal bool) {
 	var err error
 	start := time.Now()
 	defer func() {
-		cnf.writeMetric(fmt.Sprintf("Scraped %v Successfully!", URL), int(time.Since(start)), err)
+		cnf.writeMetric(fmt.Sprintf("Scraped %v Successfully!", URL), int(time.Since(start).Milliseconds()), err)
 	}()
 	if internal {
 		URL, err = db.PopPageFromPriorityQueue()

@@ -1,12 +1,9 @@
 package main
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"log"
-	"sort"
-	"sync"
 	"time"
 
 	"github.com/1gazzar1/gazoogle/indexer/constants"
@@ -14,15 +11,14 @@ import (
 	"github.com/1gazzar1/gazoogle/indexer/internal"
 	"github.com/1gazzar1/gazoogle/indexer/util"
 	"github.com/jackc/pgx/v5/pgtype"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/pgvector/pgvector-go"
 	"github.com/redis/go-redis/v9"
 )
 
-func worker(wg *sync.WaitGroup, pgDb *pgxpool.Pool, queries *internal.Queries, ctx context.Context) {
-	defer wg.Done()
+func (cnf *config) worker() {
+	defer cnf.wg.Done()
 	for {
-		num, err := queries.GetDocCount(ctx)
+		num, err := cnf.queries.GetDocCount(cnf.ctx)
 		if err != nil {
 			log.Printf("Failed to get document count, err: %v", err)
 		}
@@ -41,50 +37,56 @@ func worker(wg *sync.WaitGroup, pgDb *pgxpool.Pool, queries *internal.Queries, c
 			log.Printf("failed to pop page from indexer queue: %v", err)
 			continue
 		}
-		err = doWithTx(&pd, pgDb, ctx, queries, indexPage)
+		err = cnf.doWithTx(&pd, cnf.indexPage)
 		if err != nil {
 			db.PushPageBackToRedis(pd)
 		}
 	}
 }
 
-func doWithTx(pd *db.PageData, db *pgxpool.Pool, ctx context.Context, queries *internal.Queries,
-	fn func(pd *db.PageData, queries *internal.Queries, ctx context.Context) error) error {
-	tx, err := db.Begin(ctx)
+func (cnf *config) doWithTx(pd *db.PageData,
+	fn func(pd *db.PageData, queries *internal.Queries) (termsChInput, blankPagesChInput, error)) error {
+	tx, err := cnf.pool.Begin(cnf.ctx)
 	if err != nil {
 		return err
 	}
 	// this is safe if tx.commit() is called first
-	defer tx.Rollback(ctx)
+	defer tx.Rollback(cnf.ctx)
 
-	qtx := queries.WithTx(tx)
+	qtx := cnf.queries.WithTx(tx)
 
-	err = fn(pd, qtx, ctx)
+	termsInput, blankPagesInput, err := fn(pd, qtx)
 
 	if err != nil {
 		// defer kicks in and rolls back
 		log.Printf("Something went wrong, rolling back changes.., err: %v", err)
 		return err
 	}
-	return tx.Commit(ctx)
+	err = tx.Commit(cnf.ctx)
+	// send the data to the writers AFTER the transaction finishes
+	cnf.blankPagesCh <- blankPagesInput
+	cnf.termsCh <- termsInput
+	return err
 }
 
-func indexPage(pd *db.PageData, pgDb *internal.Queries, ctx context.Context) (returnedError error) {
+// pgDb here is the queries but in the transaction
+// i think i'm not supposed to use cnf.queries here
+func (cnf *config) indexPage(pd *db.PageData, pgDb *internal.Queries) (termsChPayload termsChInput, blankPagesChPayload blankPagesChInput, returnedError error) {
 	var err error
 	var start = time.Now()
 	defer func() {
-		writeMetric(fmt.Sprintf("Indexed %v Successfully!", pd.URL), int(time.Since(start)), returnedError)
+		writeMetric(fmt.Sprintf("Indexed %v Successfully!", pd.URL), int(time.Since(start).Milliseconds()), returnedError)
 	}()
 
-	originalText, wordStems, tokens, output, err := util.BuildPageWithWeightTF(pd.HTML)
+	originalText, wordStems, tokens, termFreq, err := util.BuildPageWithWeightTF(pd.HTML)
 	if err != nil {
-		return fmt.Errorf("failed to build/tokenize page: %v", err)
+		return termsChPayload, blankPagesChPayload, fmt.Errorf("failed to build/tokenize page: %v", err)
 	}
 	headings := util.UnTokenizeText(tokens["h1"], tokens["h2"])
 
 	modelOutput, err := util.Embed(originalText)
 	if err != nil {
-		return fmt.Errorf("Embedding Model Failed: %w", err)
+		return termsChPayload, blankPagesChPayload, fmt.Errorf("Embedding Model Failed: %w", err)
 	}
 	embedding := pgvector.NewVector(modelOutput)
 
@@ -93,68 +95,21 @@ func indexPage(pd *db.PageData, pgDb *internal.Queries, ctx context.Context) (re
 		docLength += len(token)
 	}
 	// if it there's an error creating the page it will update it.
-	page, err := pgDb.CreatePage(ctx, internal.CreatePageParams{Url: pd.URL,
+	page, err := pgDb.CreatePage(cnf.ctx, internal.CreatePageParams{Url: pd.URL,
 		Heading:   pgtype.Text{String: headings, Valid: true},
 		Title:     pgtype.Text{String: pd.Title, Valid: true},
 		Embedding: embedding,
 		DocLength: pgtype.Int4{Int32: int32(docLength), Valid: true}})
 	if err != nil {
-		return fmt.Errorf("Failed to create page, err: %w", err)
+		return termsChPayload, blankPagesChPayload, fmt.Errorf("Failed to create page, err: %w", err)
 	}
 	log.Printf("Created Page: %v", page.Url)
-	var terms []string
-	for term := range output {
-		terms = append(terms, term)
-	}
-	// sort the terms to avoid deadlocks (locking rows)
-	sort.Strings(terms)
 
-	// this creates terms if they don't exist, increments df by 1 if they do
-	_, err = pgDb.CreateTerms(ctx, terms)
-	if err != nil {
-		return fmt.Errorf("Failed to create/update terms: %v", err)
-	}
-	var postings []internal.CreatePostingsParams
-	for term, freq := range output {
-		postings = append(postings, internal.CreatePostingsParams{Word: term, Tf: freq, PageID: page.ID})
-	}
-	_, err = pgDb.CreatePostings(ctx, postings)
-	if err != nil {
-		return fmt.Errorf("Failed to create postings: %v", err)
-	}
-	log.Printf("Updated Terms & Created Postings for Page: %v", page.Url)
-
-	// inserting original words into the vocab table
-	var ogWords []string
-	var stems []string
-	for ogWord, stem := range wordStems {
-		ogWords = append(ogWords, ogWord)
-		stems = append(stems, stem)
-	}
-	pgDb.CreateVocabs(ctx, internal.CreateVocabsParams{Column1: ogWords, Column2: stems})
-
-	// we do this now so the updating links doesn't crash
-	// sort the outgoing links too to solve the deadlock issue via locking rows like in terms table
-
-	sort.Strings(pd.OutgoingLinks)
-	ids, err := pgDb.CreateBlankPages(ctx, pd.OutgoingLinks)
-	if err != nil {
-		return fmt.Errorf("failed to create pages in bulk: %v", err)
-	}
-	var linkObj []internal.InsertLinksParams
-	for _, id := range ids {
-		linkObj = append(linkObj, internal.InsertLinksParams{FromPageID: page.ID, ToPageID: id})
-	}
-	_, err = pgDb.InsertLinks(ctx, linkObj)
-	if err != nil {
-		return fmt.Errorf("Couldn't update links,err: %v", err)
-	}
 	// now we update the metadata
-	_, err = pgDb.UpdateDocCountAndAvgDocLength(ctx, float32(docLength))
+	_, err = pgDb.UpdateDocCountAndAvgDocLength(cnf.ctx, float32(docLength))
 	if err != nil {
-		return fmt.Errorf("Failed to update metadata: %v", err)
+		return termsChPayload, blankPagesChPayload, fmt.Errorf("Failed to update metadata: %v", err)
 	}
-	log.Printf("Created outgoing Blank Pages for page: %v", page.Url)
 	// image stuff here
 	var urls = make([]string, 0, len(pd.ImageMap))
 	var altTexts = make([]string, 0, len(pd.ImageMap))
@@ -165,7 +120,7 @@ func indexPage(pd *db.PageData, pgDb *internal.Queries, ctx context.Context) (re
 		embedding := pgvector.NewVector(altTextModelOutput)
 
 		if err != nil {
-			return fmt.Errorf("Embedding Model Failed: %w", err)
+			return termsChPayload, blankPagesChPayload, fmt.Errorf("Embedding Model Failed: %w", err)
 		}
 
 		urls = append(urls, imgURL)
@@ -174,14 +129,28 @@ func indexPage(pd *db.PageData, pgDb *internal.Queries, ctx context.Context) (re
 
 	}
 
-	err = pgDb.CreateImages(ctx, internal.CreateImagesParams{
+	err = pgDb.CreateImages(cnf.ctx, internal.CreateImagesParams{
 		Urls:       urls,
 		Alttexts:   altTexts,
 		Embeddings: embeddings,
 	})
 	if err != nil {
-		return fmt.Errorf("Failed to create images, err: %v", err)
+		return termsChPayload, blankPagesChPayload, fmt.Errorf("Failed to create images, err: %v", err)
 	}
 	log.Printf("Created Images for Page: %v", page.Url)
-	return nil
+
+	// this stuff is excuted at the end of the transaction to avoid the fan-in writer messing with the transaction
+
+	// sending the terms created earlier to the terms channel
+	termsInput := termsChInput{
+		pageId:    page.ID,
+		termFreq:  termFreq,
+		wordStems: wordStems,
+	}
+	// sending all outgoing links to the blankpages channel
+	blankPageInput := blankPagesChInput{
+		pageId:        page.ID,
+		outgoingLinks: pd.OutgoingLinks,
+	}
+	return termsInput, blankPageInput, nil
 }

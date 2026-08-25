@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"sync"
+	"time"
 
 	_ "embed"
 
@@ -23,28 +24,49 @@ import (
 //go:embed db/schema.sql
 var schema string
 
+type config struct {
+	ctx          context.Context
+	queries      *internal.Queries
+	pool         *pgxpool.Pool
+	wg           *sync.WaitGroup
+	termsCh      chan termsChInput
+	blankPagesCh chan blankPagesChInput
+}
+
 func main() {
 	godotenv.Load()
 
 	REDIS := util.GetSafeEnv("REDIS_DB")
 	POSTGRES := util.GetSafeEnv("POSTGRES_DB")
 
-	ctx := context.Background()
+	cnf := config{
+		ctx:          context.Background(),
+		wg:           &sync.WaitGroup{},
+		termsCh:      make(chan termsChInput),
+		blankPagesCh: make(chan blankPagesChInput),
+	}
 
 	db.InitRedis(REDIS)
-	initDatabaseSchema(POSTGRES, ctx)
+	initDatabaseSchema(POSTGRES, cnf.ctx)
 
-	pool := connectToPg(POSTGRES, ctx)
-	defer pool.Close()
+	cnf.pool = connectToPg(POSTGRES, cnf.ctx)
+	defer cnf.pool.Close()
 
-	wg := &sync.WaitGroup{}
-	queries := internal.New(pool)
+	cnf.queries = internal.New(cnf.pool)
+
+	const duration = 500 * time.Millisecond
+	// these are considered as seperate workers
+	// the actual workers send them values through the channels
+	// they collect data and handle them all in one place to avoid deadlocks
+	// this is because the upsertings 'terms' and 'createBlankPages' cause deadlocks via locking rows
+	go fanInWriter(&cnf, duration, cnf.termsCh, cnf.handleTerms)
+	go fanInWriter(&cnf, duration, cnf.blankPagesCh, cnf.handleBlankPages)
 
 	for range constants.Workers {
-		wg.Add(1)
-		go worker(wg, pool, queries, ctx)
+		cnf.wg.Add(1)
+		go cnf.worker()
 	}
-	wg.Wait()
+	cnf.wg.Wait()
 
 }
 func initDatabaseSchema(connectionString string, ctx context.Context) {
