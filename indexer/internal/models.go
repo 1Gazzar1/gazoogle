@@ -13,6 +13,7 @@ type Image struct {
 	ID        int32
 	AltText   string
 	Url       string
+	UrlHash   string
 	Embedding pgvector.Vector
 }
 

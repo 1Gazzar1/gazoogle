@@ -11,88 +11,25 @@ import (
 	"github.com/pgvector/pgvector-go"
 )
 
-const createImage = `-- name: CreateImage :one
-INSERT INTO images(alt_text,url,embedding) VALUES ($1,$2,$3)
-RETURNING id, alt_text, url, embedding
-`
-
-type CreateImageParams struct {
-	AltText   string
-	Url       string
-	Embedding pgvector.Vector
-}
-
-func (q *Queries) CreateImage(ctx context.Context, arg CreateImageParams) (Image, error) {
-	row := q.db.QueryRow(ctx, createImage, arg.AltText, arg.Url, arg.Embedding)
-	var i Image
-	err := row.Scan(
-		&i.ID,
-		&i.AltText,
-		&i.Url,
-		&i.Embedding,
-	)
-	return i, err
-}
-
 const createImages = `-- name: CreateImages :exec
-INSERT INTO images(url,alt_text,embedding) 
-SELECT unnest($1::text[]), unnest($2::text[]), unnest($3::Vector(384)[])
-ON CONFLICT (url) DO NOTHING
+INSERT INTO images(url,alt_text,embedding,url_hash) 
+SELECT unnest($1::text[]), unnest($2::text[]), unnest($3::Vector(384)[]),unnest($4::text[])
+ON CONFLICT (url_hash) DO NOTHING
 `
 
 type CreateImagesParams struct {
 	Urls       []string
 	Alttexts   []string
 	Embeddings []pgvector.Vector
+	Hashes     []string
 }
 
 func (q *Queries) CreateImages(ctx context.Context, arg CreateImagesParams) error {
-	_, err := q.db.Exec(ctx, createImages, arg.Urls, arg.Alttexts, arg.Embeddings)
-	return err
-}
-
-const getAllImages = `-- name: GetAllImages :many
-SELECT id, alt_text, url, embedding FROM images
-`
-
-func (q *Queries) GetAllImages(ctx context.Context) ([]Image, error) {
-	rows, err := q.db.Query(ctx, getAllImages)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []Image
-	for rows.Next() {
-		var i Image
-		if err := rows.Scan(
-			&i.ID,
-			&i.AltText,
-			&i.Url,
-			&i.Embedding,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const getImageById = `-- name: GetImageById :one
-SELECT id, alt_text, url, embedding FROM images 
-WHERE (id = $1)
-`
-
-func (q *Queries) GetImageById(ctx context.Context, id int32) (Image, error) {
-	row := q.db.QueryRow(ctx, getImageById, id)
-	var i Image
-	err := row.Scan(
-		&i.ID,
-		&i.AltText,
-		&i.Url,
-		&i.Embedding,
+	_, err := q.db.Exec(ctx, createImages,
+		arg.Urls,
+		arg.Alttexts,
+		arg.Embeddings,
+		arg.Hashes,
 	)
-	return i, err
+	return err
 }

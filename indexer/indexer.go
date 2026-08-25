@@ -1,6 +1,8 @@
 package main
 
 import (
+	"crypto/md5"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"log"
@@ -63,10 +65,13 @@ func (cnf *config) doWithTx(pd *db.PageData,
 		return err
 	}
 	err = tx.Commit(cnf.ctx)
+	if err != nil {
+		return err
+	}
 	// send the data to the writers AFTER the transaction finishes
 	cnf.blankPagesCh <- blankPagesInput
 	cnf.termsCh <- termsInput
-	return err
+	return nil
 }
 
 // pgDb here is the queries but in the transaction
@@ -88,11 +93,7 @@ func (cnf *config) indexPage(pd *db.PageData, pgDb *internal.Queries) (termsChPa
 	if err != nil {
 		return termsChPayload, blankPagesChPayload, fmt.Errorf("Embedding Model Failed: %w", err)
 	}
-	vector, ok := modelOutput.([]float32)
-	if !ok {
-		return termsChPayload, blankPagesChPayload, fmt.Errorf("Wrong Model output type: %w", err)
-	}
-	embedding := pgvector.NewVector(vector)
+	embedding := pgvector.NewVector(modelOutput)
 
 	var docLength int
 	for _, token := range tokens {
@@ -115,35 +116,43 @@ func (cnf *config) indexPage(pd *db.PageData, pgDb *internal.Queries) (termsChPa
 		return termsChPayload, blankPagesChPayload, fmt.Errorf("Failed to update metadata: %v", err)
 	}
 	// image stuff here
-	var urls = make([]string, 0, len(pd.ImageMap))
-	var altTexts = make([]string, 0, len(pd.ImageMap))
+	// only do the image stuff if there's actually images :3
+	if len(pd.ImageMap) >= 1 {
 
-	for imgURL, altText := range pd.ImageMap {
-		urls = append(urls, imgURL)
-		altTexts = append(altTexts, altText)
-	}
-	modelOutput, err = util.Embed(altTexts)
-	if err != nil {
-		return termsChPayload, blankPagesChPayload, fmt.Errorf("Embedding Model Failed: %w", err)
-	}
-	vectors, ok := modelOutput.([][]float32)
-	if !ok {
-		return termsChPayload, blankPagesChPayload, fmt.Errorf("Wrong Model output type: %w", err)
-	}
-	embeddings := make([]pgvector.Vector, 0, len(altTexts))
-	for _, vector := range vectors {
-		embeddings = append(embeddings, pgvector.NewVector(vector))
-	}
+		var urls = make([]string, 0, len(pd.ImageMap))
+		var altTexts = make([]string, 0, len(pd.ImageMap))
+		var hashes = make([]string, 0, len(pd.ImageMap))
+		hasher := md5.New() // md5 cuz it's fast '_'
 
-	err = pgDb.CreateImages(cnf.ctx, internal.CreateImagesParams{
-		Urls:       urls,
-		Alttexts:   altTexts,
-		Embeddings: embeddings,
-	})
-	if err != nil {
-		return termsChPayload, blankPagesChPayload, fmt.Errorf("Failed to create images, err: %v", err)
+		for imgURL, altText := range pd.ImageMap {
+			urls = append(urls, imgURL)
+			altTexts = append(altTexts, altText)
+
+			hasher.Reset()
+			hasher.Write([]byte(imgURL))
+			hashes = append(hashes, hex.EncodeToString((hasher.Sum(nil)))) // go strings apprently aren't strings, they're bytes undercover, they're not utf-8
+		}
+		modelOutputs, err := util.EmbedBatch(altTexts)
+		if err != nil {
+			return termsChPayload, blankPagesChPayload, fmt.Errorf("Embedding Model Failed, err: %w", err)
+		}
+
+		embeddings := make([]pgvector.Vector, 0, len(modelOutputs))
+		for _, vector := range modelOutputs {
+			embeddings = append(embeddings, pgvector.NewVector(vector))
+		}
+
+		err = pgDb.CreateImages(cnf.ctx, internal.CreateImagesParams{
+			Urls:       urls,
+			Alttexts:   altTexts,
+			Embeddings: embeddings,
+			Hashes:     hashes,
+		})
+		if err != nil {
+			return termsChPayload, blankPagesChPayload, fmt.Errorf("Failed to create images, err: %v", err)
+		}
+		log.Printf("Created Images for Page: %v", page.Url)
 	}
-	log.Printf("Created Images for Page: %v", page.Url)
 
 	// this stuff is excuted at the end of the transaction to avoid the fan-in writer messing with the transaction
 

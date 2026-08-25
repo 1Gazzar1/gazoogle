@@ -47,7 +47,8 @@ CREATE TABLE IF NOT EXISTS postings (
 CREATE TABLE IF NOT EXISTS images ( 
   id SERIAL PRIMARY KEY,
   alt_text TEXT NOT NULL,
-  url TEXT NOT NULL UNIQUE, 
+  url TEXT NOT NULL, 
+  url_hash TEXT NOT NULL UNIQUE, -- this column is here because img urls in the internet is way too big that postgres said fuck no i ain't dealin with that shit 
   embedding VECTOR(384) -- this is an embedding of the alt text and not the actual image 
 );
 
