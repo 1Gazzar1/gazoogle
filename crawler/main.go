@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"sync"
+	"time"
 
 	"github.com/1gazzar1/gazoogle/crawler/constants"
 	"github.com/1gazzar1/gazoogle/crawler/db"
@@ -23,8 +24,9 @@ func main() {
 	godotenv.Load()
 	DB_URL := GetSafeEnv("REDIS_DB")
 	cnf := config{
-		mu: &sync.Mutex{},
-		wg: &sync.WaitGroup{},
+		mu:              &sync.Mutex{},
+		wg:              &sync.WaitGroup{},
+		domainRatelimit: map[string]time.Time{},
 	}
 	db.InitRedis(DB_URL)
 
@@ -32,7 +34,7 @@ func main() {
 
 	for range constants.Workers {
 		cnf.wg.Add(1)
-		go cnf.worker(constants.PageLimit)
+		go cnf.worker()
 	}
 	db.AddPageToPriorityQueue(constants.StartPage)
 

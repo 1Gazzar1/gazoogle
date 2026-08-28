@@ -28,10 +28,11 @@ Fetches query-relevant data and is used to calculate BM25 scores.
 
 ## Pipeline
 
-The query engine exposes 2 endpoints (more may be added):
+The query engine exposes 3 endpoints (more may be added):
 
 - `/search` — takes a query string `q`
 - `/images` — takes a query string `q`
+- `/links/:id` — takes `id` as path parameter
 
 ### `/search`
 
@@ -49,6 +50,12 @@ The query engine exposes 2 endpoints (more may be added):
 - Embed the user query.
 - Run a cosine similarity search against image alt text embeddings.
 - Return the results.
+
+### `/links/:id`
+
+- Returns the Backlinks and Forwardlinks for a Page using its id
+
+> The purpose of this endpoint is to show a nice link graph page in the UI.
 
 ## Recap
 

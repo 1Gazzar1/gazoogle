@@ -32,7 +32,7 @@ An internal API that generates embeddings. The indexer uses it to embed page con
 Probably the most important part of the whole system.
 It's gone through several iterations to get here.
 
-[schema diagram](path/to/photo)
+[schema diagram](./readme-screenshots/image-3.png)
 
 > See [schema.sql](./db/schema.sql) for the full schema with comments.
 
@@ -67,15 +67,43 @@ Page content and image alt text are embedded via the embedding service before be
 Once we have the page data and embeddings, we write everything with bulk upserts:
 
 - Upsert the page row.
-- Bulk upsert the page's terms to track document frequency (`df`) — terms are sorted first to avoid deadlocks from inconsistent lock ordering.
-- Bulk insert the term frequency map into the postings table.
-- Bulk upsert the word-stem map into the vocab table.
-- Insert blank placeholder pages so link inserts don't fail on missing targets.
-- Bulk insert into the links table, updating outgoing/back links.
+
 - Update the metadata table (total document count, average doc length).
 - Bulk insert images.
 
 > All of this runs inside a single transaction — if any step fails, everything rolls back.
+
+### Fan-In Writers
+
+Page processing runs concurrently across multiple workers, but database writes involving `terms`, `postings`, and `vocab` caused deadlocks when performed concurrently by multiple workers.
+
+These tables are connected through foreign keys, and operations such as `INSERT ... ON CONFLICT` acquire row-level locks. With multiple transactions modifying related rows concurrently, workers can acquire locks in different orders and end up waiting on each other, causing deadlocks.
+
+A common solution is to enforce a consistent lock order by sorting the data before writing. I tried this approach, but it wasn't sufficient because the foreign-key relationships between `terms`, `postings`, and `vocab` introduce additional locking dependencies. Workers operating on different tables could still acquire conflicting locks.
+
+#### Fan-in design
+
+Instead of letting every processing worker write directly to these tables, workers send their processed data to dedicated writer workers. Each writer processes its incoming data sequentially, performing the relevant database operations within a transaction.
+
+I use two fan-in writers:
+
+- **Terms writer** — handles `terms`, `postings`, and `vocab`.
+- **Pages & links writer** — handles `pages` and `links`.
+
+This keeps page processing concurrent while serializing the database operations most susceptible to deadlocks.
+
+#### Terms writer
+
+- Bulk upserts page terms to update document frequency (`df`).
+- Bulk inserts term frequencies into `postings`.
+- Bulk upserts the word-to-stem mappings into `vocab`.
+- Terms are sorted before writing to maintain a consistent lock order.
+
+#### Pages & links writer
+
+- Inserts placeholder pages for previously unseen link targets.
+- Bulk inserts outgoing links.
+- Updates the corresponding backlink/forward-link relationships.
 
 ### Other details
 

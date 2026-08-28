@@ -6,6 +6,7 @@ import (
 	"io/fs"
 	"log"
 	"os"
+	"strings"
 	"time"
 )
 
@@ -16,6 +17,7 @@ type MetricType string
 const (
 	Success MetricType = "SUCCESS"
 	Error   MetricType = "ERROR"
+	Info    MetricType = "INFO"
 )
 
 type metric struct {
@@ -50,9 +52,13 @@ func (cnf *config) writeMetric(text string, durationMs int, incomingErr error) {
 
 	var mType MetricType = Success
 	var mText string = text
+
 	if incomingErr != nil {
-		mType = Success
+		mType = Error
 		mText = incomingErr.Error()
+	}
+	if incomingErr != nil && strings.Contains(incomingErr.Error(), "INFO") {
+		mType = Info
 	}
 	m := metric{
 		MetricType: mType,

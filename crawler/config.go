@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"log"
+	"net/url"
+	"strings"
 	"sync"
 	"time"
 
@@ -13,8 +15,9 @@ import (
 )
 
 type config struct {
-	mu *sync.Mutex
-	wg *sync.WaitGroup
+	mu              *sync.Mutex
+	wg              *sync.WaitGroup
+	domainRatelimit map[string]time.Time // map containing all domain that we got 429 and last time we got 429
 }
 
 // redis handles all that so that's not necassary
@@ -55,16 +58,17 @@ func claimPage(URL string) (exists bool, err error) {
 
 	return !claimed, nil // exists=true means someone else already has it
 }
-func unClaimPage(URL string) {
+func unClaimPage(URL string) error {
 	if err := db.DeleteKeyInPageSet(URL); err != nil {
-		log.Printf("CRITICAL: failed to unclaim %v after failure, leaked: %v", URL, err)
+		return fmt.Errorf("CRITICAL: failed to unclaim %v after failure, leaked: %w", URL, err)
 	}
 	err := db.AddPageToPriorityQueue(URL)
 	if err != nil {
-		log.Printf("Failed to add page while crawling: %v", err)
+		return fmt.Errorf("Failed to add page while crawling: %w", err)
 	}
+	return nil
 }
-func (cnf *config) worker(limit int) {
+func (cnf *config) worker() {
 	defer cnf.wg.Done()
 	for {
 		// Checking if the limit is reached before each time we scrape a new page
@@ -73,8 +77,8 @@ func (cnf *config) worker(limit int) {
 			log.Printf("error checking set len: %v", err)
 			continue
 		}
-		if n >= limit {
-			log.Printf("Worker Finished Crawling %v (limit) Pages", limit)
+		if n >= constants.PageLimit {
+			log.Printf("Worker Finished Crawling %v (limit) Pages", constants.PageLimit)
 			return
 		}
 		// if the indexer queue is over a certain number then pause the goroutine for a sec so it catches up
@@ -108,6 +112,7 @@ func (cnf *config) crawlOnePage(URL string, internal bool) {
 	defer func() {
 		cnf.writeMetric(fmt.Sprintf("Scraped %v Successfully!", URL), int(time.Since(start).Milliseconds()), err)
 	}()
+	// this part should be moved up in scope but i'm lazy :V
 	if internal {
 		URL, err = db.PopPageFromPriorityQueue()
 		if err == redis.Nil {
@@ -121,6 +126,24 @@ func (cnf *config) crawlOnePage(URL string, internal bool) {
 			log.Printf("error while fetching next url, error: %v", err)
 			return
 		}
+
+		var u *url.URL
+		u, err = url.Parse(URL) //
+		if err != nil {
+			if reErr := db.AddPageToPriorityQueue(URL); reErr != nil {
+				log.Printf("Failed to requeue after parse failure: %v", reErr)
+			}
+			return
+		}
+		if timestamp, exists := cnf.domainRatelimit[u.Hostname()]; exists &&
+			time.Since(timestamp) < constants.RateLimitWaitTime {
+			err = fmt.Errorf("INFO: Skipping URL: %v, to avoid being ratelimited", URL)
+			// add it back to the queue
+			db.AddPageToPriorityQueue(URL)
+			time.Sleep(1 * time.Second) // wait a sec then return, this is so we don't pop and requeue a wiki page 100 times
+			return
+		}
+
 	}
 	// exists, no := cnf.ifPageNotExistThenAdd(URL)
 	exists, err := claimPage(URL)
@@ -135,7 +158,15 @@ func (cnf *config) crawlOnePage(URL string, internal bool) {
 	}
 
 	pageData, err := util.BuildPageData(URL)
+	// if we get 429 then add it to the map
 	if err != nil {
+		if strings.Contains(err.Error(), "status code: 429") {
+			u, err := url.Parse(URL)
+			if err != nil {
+				return
+			}
+			cnf.domainRatelimit[u.Hostname()] = time.Now()
+		}
 		fmt.Printf("Failed to build page with url: %v, error: %v", URL, err)
 		unClaimPage(URL)
 		return

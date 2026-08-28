@@ -59,7 +59,7 @@ func BuildPageData(URL string) (pageData PageData, err error) {
 	}
 	HTML, err := getHTML(URL)
 	if err != nil {
-		return PageData{}, fmt.Errorf("Failed to fetch HTML, error: %v", err)
+		return PageData{}, fmt.Errorf("Failed to fetch HTML, error: %w", err)
 	}
 
 	title, err := extractTitle(HTML)

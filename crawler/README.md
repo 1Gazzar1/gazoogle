@@ -60,6 +60,7 @@ On top of the core loop, the crawler also:
 
 - Stops once it hits the configured page limit.
 - Pauses a worker for a second if `indexer.queue` grows past a certain size, so the indexer doesn't fall too far behind.
+- Ignores domains that return with 429 (too many requests) for a certain amount of time to avoid being rate limited, then pauses the goroutine for 1 second.
 
 ## Recap
 
