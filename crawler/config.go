@@ -154,6 +154,7 @@ func (cnf *config) crawlOnePage(URL string, internal bool) {
 	}
 	if exists {
 		// if the page exists return
+		err = fmt.Errorf("INFO: Skipping (%v), it's already claimed",URL)
 		return
 	}
 
