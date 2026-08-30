@@ -94,9 +94,9 @@
 }
 
 .badge_bm25 {
-  background: rgba(79, 142, 247, 0.12);
+  background: rgba(204, 40, 40, 0.12);
   color: var(--accent-1);
-  border-color: rgba(79, 142, 247, 0.25);
+  border-color: rgba(204, 40, 40, 0.25);
 }
 
 .badge_embedding {

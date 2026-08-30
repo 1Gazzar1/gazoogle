@@ -113,7 +113,7 @@ export default function ResultsPage({ initialQuery, onSearch, onHome, onOpenGrap
                     onClick={onHome}
                     aria-label="Go to Gazoogle home"
                 >
-                    Gz
+                    <img src="/my-logo.png" alt="Gz" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'inherit', imageRendering: 'pixelated' }} />
                 </button>
 
                 <div className={styles.searchWrap}>

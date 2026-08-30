@@ -19,7 +19,6 @@ import { BM25Page, EmbeddingPage, Term } from "@/types/page.js";
 import { BM25Params } from "@/types/bm25.js";
 import { rrf, RRFPage } from "@/util/rrf.js";
 import cors from "cors";
-import { start } from "node:repl";
 import {
     getBacklinkCount,
     getBacklinks,

@@ -69,6 +69,7 @@ func (cnf *config) doWithTx(pd *db.PageData,
 		return err
 	}
 	// send the data to the writers AFTER the transaction finishes
+	// that way the page has to exist first before fan in writers 
 	cnf.blankPagesCh <- blankPagesInput
 	cnf.termsCh <- termsInput
 	return nil

@@ -14,7 +14,7 @@
   width: 500px;
   height: 500px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(79, 142, 247, 0.14) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(204, 40, 40, 0.14) 0%, transparent 70%);
   top: -100px;
   right: -100px;
   pointer-events: none;
@@ -48,6 +48,13 @@
   text-align: center;
 }
 
+.logoImage {
+  width: 120px;
+  height: 120px;
+  margin: 0 auto var(--space-4);
+  image-rendering: pixelated; /* To preserve the pixel art look */
+}
+
 .logo {
   display: inline-block;
   font-family: var(--font-display);
@@ -58,15 +65,15 @@
   user-select: none;
 }
 
-/* ULTRAKILL-wiki inspired color scheme on the letters */
-.logoG  { color: #4f8ef7; }
-.logoA  { color: #63b3ff; }
-.logoZ  { color: #7c5cf6; }
-.logoO  { color: #a78bfa; }
-.logoO2 { color: #7c5cf6; }
-.logoG2 { color: #63b3ff; }
-.logoL  { color: #4f8ef7; }
-.logoE  { color: #3a7ce8; }
+/* Red/Purple theme on the letters */
+.logoG  { color: #cc2828; }
+.logoA  { color: #e05252; }
+.logoZ  { color: #c44062; }
+.logoO  { color: #7c5cf6; }
+.logoO2 { color: #a78bfa; }
+.logoG2 { color: #7c5cf6; }
+.logoL  { color: #a78bfa; }
+.logoE  { color: #7c5cf6; }
 
 .tagline {
   margin-top: var(--space-3);

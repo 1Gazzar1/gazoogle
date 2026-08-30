@@ -6,29 +6,29 @@
 
 /* === CSS Custom Properties === */
 :root {
-  /* Color palette */
-  --bg-base: #080b11;
-  --bg-surface: #0e1420;
-  --bg-card: #121926;
-  --bg-glass: rgba(18, 25, 38, 0.7);
+  /* Color palette — deep space navy from the logo background */
+  --bg-base: #0d0b1a;
+  --bg-surface: #120f24;
+  --bg-card: #18142e;
+  --bg-glass: rgba(24, 20, 46, 0.7);
   --bg-input: rgba(255, 255, 255, 0.05);
   --bg-input-focus: rgba(255, 255, 255, 0.08);
 
   --border-subtle: rgba(255, 255, 255, 0.06);
   --border-default: rgba(255, 255, 255, 0.1);
-  --border-active: rgba(99, 168, 255, 0.5);
+  --border-active: rgba(204, 40, 40, 0.5);
 
-  --text-primary: #f0f4ff;
-  --text-secondary: #8b9bbb;
-  --text-muted: #505a72;
-  --text-link: #63a8ff;
+  --text-primary: #f0eeff;
+  --text-secondary: #9b92c4;
+  --text-muted: #544e72;
+  --text-link: #e05252;
   --text-link-visited: #a78bfa;
 
-  /* Accent — electric blue / violet gradient */
-  --accent-1: #4f8ef7;
+  /* Accent — crimson red (hat) + deep purple (logo bg) */
+  --accent-1: #cc2828;
   --accent-2: #7c5cf6;
-  --accent-gradient: linear-gradient(135deg in oklch, #4f8ef7, #7c5cf6);
-  --accent-glow: rgba(79, 142, 247, 0.25);
+  --accent-gradient: linear-gradient(135deg in oklch, #cc2828, #7c5cf6);
+  --accent-glow: rgba(204, 40, 40, 0.25);
 
   /* Typography */
   --font-display: 'Space Grotesk', system-ui, sans-serif;
@@ -91,7 +91,7 @@ body {
   overflow-x: hidden;
   /* Subtle grid pattern */
   background-image:
-    radial-gradient(ellipse 80% 60% at 50% -10%, rgba(79, 142, 247, 0.12), transparent),
+    radial-gradient(ellipse 80% 60% at 50% -10%, rgba(204, 40, 40, 0.1), transparent),
     linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
     linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
   background-size: 100% 100%, 40px 40px, 40px 40px;
@@ -167,7 +167,7 @@ img {
 
 @keyframes pulse-glow {
   0%, 100% { box-shadow: 0 0 20px var(--accent-glow); }
-  50%       { box-shadow: 0 0 40px rgba(79, 142, 247, 0.5); }
+  50%       { box-shadow: 0 0 40px rgba(204, 40, 40, 0.5); }
 }
 
 @keyframes spin {

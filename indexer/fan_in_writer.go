@@ -20,9 +20,9 @@ type blankPagesChInput struct {
 }
 
 func fanInWriter[T any](cnf *config, duration time.Duration, ch chan T, flush func(batch *[]T)) {
-	// i'm aware that this lacks the roll back feature
-	// so if the string(s) we got from a page here and the page crashed then this will still continue making extra ghost data
-	// and when the page retries it will create duplicate data
+	// i'm aware that this lacks a retry feature
+	// so if the transaction inside flush fails then the data is lost and the db has the page but no postings,... to it 
+	// i could add a dead-letter queue type feature with redis to handle this problem for retrying  
 	// BUT during my testing the indexer is a very healthy service, so it shouldn't be a big deal
 	batch := make([]T, 0)
 

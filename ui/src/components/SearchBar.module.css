@@ -19,7 +19,7 @@
 .wrapper:focus-within {
   border-color: var(--border-active);
   background: var(--bg-input-focus);
-  box-shadow: 0 0 0 3px rgba(79, 142, 247, 0.12), var(--shadow-glow);
+  box-shadow: 0 0 0 3px rgba(204, 40, 40, 0.12), var(--shadow-glow);
 }
 
 /* Compact mode (used in header on results page) */
@@ -102,11 +102,11 @@
   width: 36px;
   height: 36px;
   margin-right: var(--space-1);
-  background: var(--accent-gradient);
+  background: var(--accent-2);
   border-radius: var(--radius-pill);
   color: white;
   transition: opacity var(--transition-fast), transform var(--transition-fast), box-shadow var(--transition-fast);
-  box-shadow: 0 2px 12px rgba(79, 142, 247, 0.35);
+  box-shadow: 0 2px 12px rgba(204, 40, 40, 0.35);
 }
 
 .compact .submit {
@@ -117,7 +117,7 @@
 .submit:hover {
   opacity: 0.9;
   transform: scale(1.05);
-  box-shadow: 0 4px 20px rgba(79, 142, 247, 0.5);
+  box-shadow: 0 4px 20px rgba(204, 40, 40, 0.5);
 }
 
 .submit:active {

@@ -50,7 +50,7 @@ export default function SearchBar({ value, onChange, onSubmit, autoFocus, compac
           id="search-input"
           type="search"
           className={styles.input}
-          placeholder="Search the web…"
+          placeholder="gazoogle it!"
           value={value}
           onChange={(e) => onChange(e.target.value)}
           onKeyDown={handleKeyDown}
