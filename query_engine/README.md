@@ -44,6 +44,7 @@ The query engine exposes 3 endpoints (more may be added):
 - Calculate BM25 per posting, then normalize so pages with multiple matching terms collapse into one combined score.
 - Run a cosine similarity search using the query embedding.
 - Combine the BM25 and embedding results using RRF (Reciprocal Rank Fusion).
+- Add a boost based on number of Page's Backlinks (max boost is x1.5)
 
 ### `/images`
 

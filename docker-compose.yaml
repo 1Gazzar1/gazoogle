@@ -3,6 +3,7 @@ x-common-env: &common-env
   POSTGRES_DB: postgres://gazoogle:gazoogle@postgres:5432/gazoogle
   EMBEDDING_URL: http://embedding:80
   VITE_API_URL: http://query_engine:8080
+  PORT: 8080
 services:
   crawler:
     build:
@@ -64,11 +65,11 @@ services:
       - POSTGRES_USER=gazoogle
       - POSTGRES_PASSWORD=gazoogle
     ports:
-      - "5555:5432" # 5432 was already in use lol 
+      - "5555:5432" # 5432 was already in use lol
   embedding:
     image: ghcr.io/huggingface/text-embeddings-inference:cpu-latest
     command: ["--model-id", "sentence-transformers/all-MiniLM-L6-v2"]
     ports:
       - "1234:80"
     volumes:
-      - "~/data:/data" # this will create 
+      - "~/data:/data" # this will create
