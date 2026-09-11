@@ -26,20 +26,30 @@ var blockedDomains = map[string]struct{}{
 	"stats.wikimedia.org":      {},
 	"commons.wikimedia.org":    {},
 	"scholar.google.com":       {},
+
+	// these are observed from a run
+	"web.archive.org": {},
+	"archive.org":     {},
+	"addtoany.com":    {},
 }
-var bannedNamespaces = map[string]bool{
-	"Talk":        true,
-	"User":        true,
-	"Wikipedia":   true,
-	"File":        true,
-	"MediaWiki":   true,
-	"Template":    true,
-	"Help":        true,
-	"Category":    true,
-	"Portal":      true,
-	"Special":     true,
-	"Main_Page":   true,
-	"Entity_Page": true,
+var bannedNamespaces = map[string]struct{}{
+	"Talk":        {},
+	"User":        {},
+	"Wikipedia":   {},
+	"File":        {},
+	"MediaWiki":   {},
+	"Template":    {},
+	"Help":        {},
+	"Category":    {},
+	"Portal":      {},
+	"Special":     {},
+	"Main_Page":   {},
+	"Entity_Page": {},
+	// also observed from a run
+	"Book":      {},
+	"Draft":     {},
+	"TimedText": {},
+	"Module":    {},
 }
 
 type PageData struct {
@@ -101,6 +111,12 @@ func extractURLs(HTML string, baseURL *url.URL) (OutgoingLinks []string, err err
 			return
 		}
 		u = baseURL.ResolveReference(u)
+		// only web pages
+		// this ignore redirect like 'whatsapp:' or 'mailto:' or 'javascript:' things
+		if u.Scheme != "http" && u.Scheme != "https" {
+			return
+		}
+
 		// guard check to ignore some wiki sites
 		hostAndPath := u.Host + u.Path
 		if _, exists := blockedDomains[u.Hostname()]; exists {
@@ -119,10 +135,10 @@ func extractURLs(HTML string, baseURL *url.URL) (OutgoingLinks []string, err err
 			// 3. Check for banned namespaces (e.g., Category: or Talk:)
 			parts := strings.SplitN(title, ":", 2)
 			if len(parts) > 1 {
-				if bannedNamespaces[parts[0]] {
+				if _, exists := bannedNamespaces[parts[0]]; exists {
 					return
 				}
-			} else if bannedNamespaces[title] {
+			} else if _, exists := bannedNamespaces[title]; exists {
 				// Catch the "Main_Page" edge case
 				return
 			}

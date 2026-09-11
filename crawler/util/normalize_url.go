@@ -30,7 +30,7 @@ func NormalizeURL(URL string) (normURL string, err error) {
 	parsed.Fragment = ""
 	parsed.RawFragment = ""
 
-	// sort the queries
-	parsed.RawQuery = parsed.Query().Encode()
+	// remove the query too
+	parsed.RawQuery = ""
 	return parsed.String(), nil
 }

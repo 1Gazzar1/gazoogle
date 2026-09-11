@@ -39,7 +39,7 @@ func TestNormalizeURL(t *testing.T) {
 		{
 			name:     "Remove tracking and extra query params (if applicable)",
 			input:    "https://example.com/path?b=2&a=1",
-			expected: "https://example.com/path?a=1&b=2", // Sorted query params
+			expected: "https://example.com/path",
 		},
 		{
 			name:     "Handle empty path",
@@ -55,7 +55,7 @@ func TestNormalizeURL(t *testing.T) {
 		{
 			name:     "Strip fragments/hash anchors",
 			input:    "https://example.com/page?a=1#section-heading",
-			expected: "https://example.com/page?a=1",
+			expected: "https://example.com/page",
 			hasError: false,
 		},
 	}
