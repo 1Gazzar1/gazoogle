@@ -47,13 +47,7 @@ func (cnf *config) writeMetric(text string, durationMs int, incomingErr error) {
 
 	m := makeMetric(text, durationMs, incomingErr)
 
-	data, err := json.Marshal(m)
-	if err != nil {
-		log.Printf("CRITICAL: Failed to marshal metrics struct err: %v", err)
-		return
-	}
-
-	if err = json.NewEncoder(cnf.metricsFile).Encode(data); err != nil {
+	if err := json.NewEncoder(cnf.metricsFile).Encode(m); err != nil {
 		log.Printf("CRITICAL: Failed to write to metrics file err: %v", err)
 		return
 	}

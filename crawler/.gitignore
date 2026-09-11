@@ -3,3 +3,4 @@ crawler.log
 .env
 crawler
 metrics.json
+metrics.jsonl 
