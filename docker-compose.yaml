@@ -51,6 +51,8 @@ services:
       <<: *common-env
     ports:
       - "80:80"
+    depends_on:
+      - query_engine
 
   redis:
     image: redis:8
@@ -72,4 +74,4 @@ services:
     ports:
       - "1234:80"
     volumes:
-      - "~/data:/data" # this will create
+      - "~/data:/data:z" # this will create a folder at ~/data for cache
