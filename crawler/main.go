@@ -23,10 +23,19 @@ func GetSafeEnv(env string) string {
 func main() {
 	godotenv.Load()
 	DB_URL := GetSafeEnv("REDIS_DB")
+
+	file, err := os.OpenFile(constants.MetricsFilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		log.Printf("CRITICAL: Failed to read metrics file err: %v", err)
+		return
+	}
+	defer file.Close()
+
 	cnf := config{
 		mu:              &sync.Mutex{},
 		wg:              &sync.WaitGroup{},
 		domainRatelimit: map[string]time.Time{},
+		metricsFile:     file,
 	}
 	db.InitRedis(DB_URL)
 

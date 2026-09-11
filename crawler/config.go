@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/url"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -18,6 +19,7 @@ type config struct {
 	mu              *sync.Mutex
 	wg              *sync.WaitGroup
 	domainRatelimit map[string]time.Time // map containing all domain that we got 429 and last time we got 429
+	metricsFile     *os.File
 }
 
 // redis handles all that so that's not necassary
@@ -154,7 +156,7 @@ func (cnf *config) crawlOnePage(URL string, internal bool) {
 	}
 	if exists {
 		// if the page exists return
-		err = fmt.Errorf("INFO: Skipping (%v), it's already claimed",URL)
+		err = fmt.Errorf("INFO: Skipping (%v), it's already claimed", URL)
 		return
 	}
 

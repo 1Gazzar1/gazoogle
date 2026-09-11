@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"log"
+	"os"
 	"sync"
 	"time"
 
@@ -31,6 +32,8 @@ type config struct {
 	wg           *sync.WaitGroup
 	termsCh      chan termsChInput
 	blankPagesCh chan blankPagesChInput
+	mu           *sync.Mutex
+	metricsFile  *os.File
 }
 
 func main() {
@@ -39,11 +42,20 @@ func main() {
 	REDIS := util.GetSafeEnv("REDIS_DB")
 	POSTGRES := util.GetSafeEnv("POSTGRES_DB")
 
+	file, err := os.OpenFile(constants.MetricsFilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		log.Printf("CRITICAL: Failed to read metrics file err: %v", err)
+		return
+	}
+	defer file.Close()
+
 	cnf := config{
 		ctx:          context.Background(),
 		wg:           &sync.WaitGroup{},
 		termsCh:      make(chan termsChInput),
 		blankPagesCh: make(chan blankPagesChInput),
+		mu:           &sync.Mutex{},
+		metricsFile:  file,
 	}
 
 	db.InitRedis(REDIS)

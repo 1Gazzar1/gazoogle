@@ -16,4 +16,6 @@ const (
 	IndexerQueue = "indexer.queue"
 	Workers      = 10     // no of workers
 	PageLimit    = 100000 // we stop scraping if we reach this number
+
+	MetricsFilePath = "./metrics.jsonl"
 )

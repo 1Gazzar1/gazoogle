@@ -13,4 +13,6 @@ const (
 	IndexerQueueLimit = 5000                                      // meaning if the queue is bigger than 100 in size we slow scrapping down
 	PageLimit         = 100000                                    // we stop scraping if we reach this number
 	RateLimitWaitTime = time.Second * 30                          // time we wait before scraping a page again if we get 429 from its domain
+
+	MetricsFilePath = "./metrics.jsonl"
 )
