@@ -58,7 +58,7 @@ func (cnf *config) handleTerms(batch *[]termsChInput) {
 		if err != nil {
 			log.Printf("CRITICAL: failed to begin tx in terms writer: %v", err)
 			err = fmt.Errorf("CRITICAL: failed to begin tx in terms writer: %w", err)
-			writeMetric("", 0, err)
+			cnf.writeMetric("", 0, err)
 			continue
 		}
 
@@ -74,7 +74,7 @@ func (cnf *config) handleTerms(batch *[]termsChInput) {
 		if err != nil {
 			log.Printf("CRITICAL: Failed to create/update terms in fan-in writer: %v", err)
 			err = fmt.Errorf("CRITICAL: Failed to create/update terms in fan-in writer: %w", err)
-			writeMetric("", 0, err)
+			cnf.writeMetric("", 0, err)
 			tx.Rollback(cnf.ctx)
 			continue
 		}
@@ -87,7 +87,7 @@ func (cnf *config) handleTerms(batch *[]termsChInput) {
 		if err != nil {
 			log.Printf("CRITICAL: Failed to create postings in fan-in writer: %v", err)
 			err = fmt.Errorf("CRITICAL: Failed to create postings in fan-in writer: %w", err)
-			writeMetric("", 0, err)
+			cnf.writeMetric("", 0, err)
 			tx.Rollback(cnf.ctx)
 			continue
 		}
@@ -119,12 +119,12 @@ func (cnf *config) handleTerms(batch *[]termsChInput) {
 		if err != nil {
 			log.Printf("CRITICAL: Failed to create/update vocabs in fan-in writer: %v", err)
 			err = fmt.Errorf("CRITICAL: Failed to create/update vocabs in fan-in writer: %w", err)
-			writeMetric("", 0, err)
+			cnf.writeMetric("", 0, err)
 			tx.Rollback(cnf.ctx)
 			continue
 		}
 		tx.Commit(cnf.ctx)
-		writeMetric(
+		cnf.writeMetric(
 			fmt.Sprintf("Added %v Terms and Postings (Fan-In Writer), PageId: %v", len(terms), input.pageId),
 			int(time.Since(start).Milliseconds()), err)
 	}
@@ -147,7 +147,7 @@ func (cnf *config) handleBlankPages(batch *[]blankPagesChInput) {
 		if err != nil {
 			log.Printf("CRITICAL: failed to begin tx in terms writer: %v", err)
 			err = fmt.Errorf("CRITICAL: failed to begin tx in terms writer: %w", err)
-			writeMetric("", 0, err)
+			cnf.writeMetric("", 0, err)
 			continue
 		}
 
@@ -167,7 +167,7 @@ func (cnf *config) handleBlankPages(batch *[]blankPagesChInput) {
 		if err != nil {
 			log.Printf("failed to create pages in bulk: %v", err)
 			err = fmt.Errorf("failed to create pages in bulk: %w", err)
-			writeMetric("", 0, err)
+			cnf.writeMetric("", 0, err)
 			tx.Rollback(cnf.ctx)
 			continue
 		}
@@ -179,12 +179,12 @@ func (cnf *config) handleBlankPages(batch *[]blankPagesChInput) {
 		if err != nil {
 			log.Printf("Couldn't update links,err: %v", err)
 			err = fmt.Errorf("Couldn't update links,err: %w", err)
-			writeMetric("", 0, err)
+			cnf.writeMetric("", 0, err)
 			tx.Rollback(cnf.ctx)
 			continue
 		}
 		tx.Commit(cnf.ctx)
-		writeMetric(
+		cnf.writeMetric(
 			fmt.Sprintf("Added %v Blank Pages and Links (Fan-In Writer), PageId: %v", len(ids), blankPgs.pageId),
 			int(time.Since(start).Milliseconds()), err)
 	}

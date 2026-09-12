@@ -4,7 +4,7 @@ import { loadEnvFile } from "node:process";
 import helmet from "helmet";
 import { cleanQuery } from "@/util/cleanQuery.js";
 import { doLevenshtein } from "@/util/levenshtein.js";
-import { getAllVocab } from "@/internal/vocab_sql.js";
+import { getAllVocab, GetAllVocabRow } from "@/internal/vocab_sql.js";
 import { initDb } from "@/db/db.js";
 import { getPagesBytWords } from "@/internal/retreival_sql.js";
 import { getBM25 } from "@/util/bm25.js";
@@ -25,6 +25,7 @@ import {
     getForwardlinks,
 } from "@/internal/links_sql.js";
 import { getBacklinkBoost } from "@/util/backlinkBoost.js";
+import { time } from "node:console";
 
 loadEnvFile();
 
@@ -52,6 +53,10 @@ app.get("/", (req, res) => {
     console.log(req.method, req.host, req.hostname);
     res.json("Hello world");
 });
+
+let VOCAB: GetAllVocabRow[] = [];
+let LAST_VOCAB_CALL: number = 0;
+
 app.get("/search", async (req, res) => {
     const startTime = Date.now();
 
@@ -62,12 +67,18 @@ app.get("/search", async (req, res) => {
 
     if (qWords.length <= 0) throw ERRORS.BAD_REQUEST("enter a valid query bro");
 
+    let cachedVocab = true;
+    // if it was 10 mins since we made a db for vocab then do one
     const dbVocabStartTime = Date.now();
-    const vocabTable = await getAllVocab(dbClient);
+    if (dbVocabStartTime - LAST_VOCAB_CALL > 1000 * 60 * 10) {
+        VOCAB = await getAllVocab(dbClient);
+        LAST_VOCAB_CALL = dbVocabStartTime;
+        cachedVocab = false;
+    }
     const dbVocabTime = Date.now() - dbVocabStartTime;
 
     const vocabStems: Record<string, string> = {};
-    vocabTable.forEach((row) => {
+    VOCAB.forEach((row) => {
         vocabStems[row.word] = row.stem;
     });
 
@@ -220,6 +231,7 @@ app.get("/search", async (req, res) => {
     res.status(200).json({
         corrected,
         q: finalQuery,
+        skippedVocabDbCall: cachedVocab,
         results: finalResult.slice(0, 10),
         durations: {
             totalTime: endTime,

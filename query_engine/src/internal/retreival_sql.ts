@@ -5,29 +5,25 @@ interface Client {
 }
 
 export const getPagesBytWordsQuery = `-- name: GetPagesBytWords :many
-SELECT postings.id, word, page_id, tf, term, df, pages.id, url, title, heading, embedding, doc_length, crawled_at FROM postings 
+SELECT page_id,tf,terms.df,pages.doc_length,terms.term,pages.url,pages.heading,pages.title 
+FROM postings 
 JOIN terms ON word = terms.term 
 JOIN pages ON page_id = pages.id 
-WHERE word IN (SELECT unnest($1::text[]))`;
+WHERE word = ANY($1::text[])`;
 
 export interface GetPagesBytWordsArgs {
     words: string[];
 }
 
 export interface GetPagesBytWordsRow {
-    id: number;
-    word: string;
     pageId: number;
     tf: number;
-    term: string;
     df: number;
-    id_2: number;
-    url: string;
-    title: string | null;
-    heading: string | null;
-    embedding: string | null;
     docLength: number | null;
-    crawledAt: Date | null;
+    term: string;
+    url: string;
+    heading: string | null;
+    title: string | null;
 }
 
 export async function getPagesBytWords(client: Client, args: GetPagesBytWordsArgs): Promise<GetPagesBytWordsRow[]> {
@@ -38,19 +34,14 @@ export async function getPagesBytWords(client: Client, args: GetPagesBytWordsArg
     });
     return result.rows.map(row => {
         return {
-            id: row[0],
-            word: row[1],
-            pageId: row[2],
-            tf: row[3],
+            pageId: row[0],
+            tf: row[1],
+            df: row[2],
+            docLength: row[3],
             term: row[4],
-            df: row[5],
-            id_2: row[6],
-            url: row[7],
-            title: row[8],
-            heading: row[9],
-            embedding: row[10],
-            docLength: row[11],
-            crawledAt: row[12]
+            url: row[5],
+            heading: row[6],
+            title: row[7]
         };
     });
 }

@@ -71,3 +71,6 @@ CREATE TABLE IF NOT EXISTS metadata (
 
 INSERT INTO metadata(id,total_documents,avg_doc_length) VALUES(TRUE,0,0)
 ON CONFLICT (id) DO NOTHING;
+
+CREATE INDEX links_to_page_id_idx
+ON links(to_page_id);

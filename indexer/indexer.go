@@ -69,7 +69,7 @@ func (cnf *config) doWithTx(pd *db.PageData,
 		return err
 	}
 	// send the data to the writers AFTER the transaction finishes
-	// that way the page has to exist first before fan in writers 
+	// that way the page has to exist first before fan in writers
 	cnf.blankPagesCh <- blankPagesInput
 	cnf.termsCh <- termsInput
 	return nil
@@ -81,7 +81,7 @@ func (cnf *config) indexPage(pd *db.PageData, pgDb *internal.Queries) (termsChPa
 	var err error
 	var start = time.Now()
 	defer func() {
-		writeMetric(fmt.Sprintf("Indexed %v Successfully!", pd.URL), int(time.Since(start).Milliseconds()), returnedError)
+		cnf.writeMetric(fmt.Sprintf("Indexed %v Successfully!", pd.URL), int(time.Since(start).Milliseconds()), returnedError)
 	}()
 
 	originalText, wordStems, tokens, termFreq, err := util.BuildPageWithWeightTF(pd.HTML)
