@@ -96,9 +96,9 @@ app.get("/search", async (req, res) => {
             return word;
         }
         const buckets = [
-            ...BUCKETS[word.length + 1],
-            ...BUCKETS[word.length],
-            ...BUCKETS[word.length - 1],
+            ...(BUCKETS[word.length + 1] ?? []),
+            ...(BUCKETS[word.length] ?? []),
+            ...(BUCKETS[word.length - 1] ?? []),
         ];
         const closest = doLevenshtein(word, buckets);
         if (word !== closest) {

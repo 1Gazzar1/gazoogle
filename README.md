@@ -6,7 +6,14 @@ It's basically Google 30 years ago or so (probably worse).
 
 > just gazoogle it!
 
-## TODO: ADD UI IMAGE HERE
+I crawled and indexed 50k+ pages during testing.  
+
+
+#### Search Results
+![1st screenshot of project](./readme-screenshots/image-4.png)
+
+#### Link Graph
+![2nd screenshot of project](./readme-screenshots/image-3.png)
 
 ## Tech Stack
 
