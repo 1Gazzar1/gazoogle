@@ -26,6 +26,7 @@ import {
 } from "@/internal/links_sql.js";
 import { getBacklinkBoost } from "@/util/backlinkBoost.js";
 import { time } from "node:console";
+import { vocabBuckets } from "@/util/vocab.js";
 
 loadEnvFile();
 
@@ -54,7 +55,9 @@ app.get("/", (req, res) => {
     res.json("Hello world");
 });
 
+// these are for spell correction
 let VOCAB: GetAllVocabRow[] = [];
+let BUCKETS: Record<number, string[]> = [];
 let LAST_VOCAB_CALL: number = 0;
 
 app.get("/search", async (req, res) => {
@@ -72,6 +75,7 @@ app.get("/search", async (req, res) => {
     const dbVocabStartTime = Date.now();
     if (dbVocabStartTime - LAST_VOCAB_CALL > 1000 * 60 * 10) {
         VOCAB = await getAllVocab(dbClient);
+        BUCKETS = vocabBuckets(VOCAB);
         LAST_VOCAB_CALL = dbVocabStartTime;
         cachedVocab = false;
     }
@@ -91,7 +95,12 @@ app.get("/search", async (req, res) => {
             // exit early if the word is correct
             return word;
         }
-        const closest = doLevenshtein(word, Object.keys(vocabStems));
+        const buckets = [
+            ...BUCKETS[word.length + 1],
+            ...BUCKETS[word.length],
+            ...BUCKETS[word.length - 1],
+        ];
+        const closest = doLevenshtein(word, buckets);
         if (word !== closest) {
             corrected = true;
             return closest;

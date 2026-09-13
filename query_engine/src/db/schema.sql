@@ -72,5 +72,13 @@ CREATE TABLE IF NOT EXISTS metadata (
 INSERT INTO metadata(id,total_documents,avg_doc_length) VALUES(TRUE,0,0)
 ON CONFLICT (id) DO NOTHING;
 
+-- composite indexes am i right 
 CREATE INDEX links_to_page_id_idx
 ON links(to_page_id);
+
+-- for faster cosine similarity search 
+CREATE INDEX pages_embedding_idx
+ON pages USING hnsw (embedding vector_cosine_ops); 
+
+CREATE INDEX images_embedding_idx
+ON images USING hnsw (embedding vector_cosine_ops); 

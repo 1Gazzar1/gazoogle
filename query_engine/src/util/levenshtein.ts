@@ -1,6 +1,17 @@
-import { closest } from "fastest-levenshtein";
+import { distance } from "fastest-levenshtein";
 
 export function doLevenshtein(q: string, vocab: string[]) {
-    // this might need to be refactored to return a list of clostest matches instead of 1
-    return closest(q, vocab);
+    let bestDist = Infinity;
+    let match = q;
+    for (const word of vocab) {
+        const d = distance(q, word);
+        if (d < bestDist) {
+            match = word;
+            bestDist = d;
+        }
+        if (bestDist === 1) {
+            break;
+        }
+    }
+    return match;
 }
