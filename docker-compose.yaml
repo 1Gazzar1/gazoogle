@@ -68,6 +68,8 @@ services:
       - POSTGRES_PASSWORD=gazoogle
     ports:
       - "5555:5432" # 5432 was already in use lol
+    volumes:
+      - pgdata:/var/lib/postgresql/data
   embedding:
     image: ghcr.io/huggingface/text-embeddings-inference:cpu-latest
     command: ["--model-id", "sentence-transformers/all-MiniLM-L6-v2"]
@@ -75,3 +77,7 @@ services:
       - "1234:80"
     volumes:
       - "~/data:/data:z" # this will create a folder at ~/data for cache
+
+
+volumes:
+  pgdata:

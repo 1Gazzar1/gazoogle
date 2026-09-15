@@ -5,7 +5,7 @@ interface Client {
 }
 
 export const searchPageEmbeddingsQuery = `-- name: SearchPageEmbeddings :many
-SELECT id, url, title, heading, embedding, doc_length, crawled_at FROM pages 
+SELECT id FROM pages -- we're gonna retreive it again anyways so reduce the width
 ORDER BY embedding <=> $1::Vector(384)
 LIMIT $2::int`;
 
@@ -16,12 +16,6 @@ export interface SearchPageEmbeddingsArgs {
 
 export interface SearchPageEmbeddingsRow {
     id: number;
-    url: string;
-    title: string | null;
-    heading: string | null;
-    embedding: string | null;
-    docLength: number | null;
-    crawledAt: Date | null;
 }
 
 export async function searchPageEmbeddings(client: Client, args: SearchPageEmbeddingsArgs): Promise<SearchPageEmbeddingsRow[]> {
@@ -32,13 +26,7 @@ export async function searchPageEmbeddings(client: Client, args: SearchPageEmbed
     });
     return result.rows.map(row => {
         return {
-            id: row[0],
-            url: row[1],
-            title: row[2],
-            heading: row[3],
-            embedding: row[4],
-            docLength: row[5],
-            crawledAt: row[6]
+            id: row[0]
         };
     });
 }

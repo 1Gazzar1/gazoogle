@@ -1,8 +1,5 @@
 export interface BasePage {
     id: number;
-    url: string;
-    heading: string;
-    title: string;
     backlinkCount?: number;
 }
 

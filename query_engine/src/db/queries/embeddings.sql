@@ -1,5 +1,5 @@
 -- name: SearchPageEmbeddings :many 
-SELECT id,url,heading,title FROM pages 
+SELECT id FROM pages -- we're gonna retreive it again anyways so reduce the width
 ORDER BY embedding <=> @embedding::Vector(384)
 LIMIT @count::int; 
 

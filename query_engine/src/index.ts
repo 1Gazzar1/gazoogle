@@ -6,7 +6,6 @@ import { cleanQuery } from "@/util/cleanQuery.js";
 import { doLevenshtein } from "@/util/levenshtein.js";
 import { getAllVocab, GetAllVocabRow } from "@/internal/vocab_sql.js";
 import { initDb } from "@/db/db.js";
-import { getPagesBytWords } from "@/internal/retreival_sql.js";
 import { getBM25 } from "@/util/bm25.js";
 import { getDocInfo } from "@/internal/metadata_sql.js";
 import { embed } from "@/util/embeddings.js";
@@ -27,6 +26,12 @@ import {
 import { getBacklinkBoost } from "@/util/backlinkBoost.js";
 import { time } from "node:console";
 import { vocabBuckets } from "@/util/vocab.js";
+import {
+    getBM25RelevantInfoByWords,
+    getBM25RelevantInfoByWordsQuery,
+    getPagesById,
+    GetPagesByIdArgs,
+} from "@/internal/retreival_sql.js";
 
 loadEnvFile();
 
@@ -118,7 +123,7 @@ app.get("/search", async (req, res) => {
 
     const dbBM25StartTime = Date.now();
     // this gets a JOIN of 3 tables ( postings, terms and pages ) to gather all data to calc bm25
-    const data = await getPagesBytWords(dbClient, {
+    const data = await getBM25RelevantInfoByWords(dbClient, {
         words: stems,
     });
     const dbBM25ime = Date.now() - dbBM25StartTime;
@@ -143,10 +148,7 @@ app.get("/search", async (req, res) => {
     const embeddingResults = _embeddingResults.map((row): EmbeddingPage => {
         return {
             type: "embedding",
-            heading: row.heading ?? "",
             id: row.id,
-            title: row.title ?? "",
-            url: row.url,
         };
     });
 
@@ -158,7 +160,7 @@ app.get("/search", async (req, res) => {
 
     // normalizing the calculating bm25
     const bm25StartTime = Date.now();
-    const resultsMap: Record<string, BM25Page> = {};
+    const resultsMap: Record<number, BM25Page> = {};
     for (const row of data) {
         const params: BM25Params = {
             avgDocLen: docsInfo?.avgDocLength ?? 0,
@@ -171,23 +173,20 @@ app.get("/search", async (req, res) => {
         };
         const score = getBM25(params);
 
-        if (resultsMap[row.url]) {
+        if (resultsMap[row.pageId]) {
             const term: Term = {
                 term: row.term,
                 df: row.df,
                 tf: row.tf,
             };
-            resultsMap[row.url].bm25Score += score;
-            resultsMap[row.url].terms.push(term);
+            resultsMap[row.pageId].bm25Score += score;
+            resultsMap[row.pageId].terms.push(term);
             continue;
         }
-        resultsMap[row.url] = {
+        resultsMap[row.pageId] = {
             type: "bm25",
-            heading: row.heading ?? "",
             id: row.pageId,
             bm25Score: score,
-            title: row.title ?? "",
-            url: row.url,
             terms: [
                 {
                     term: row.term,
@@ -229,19 +228,34 @@ app.get("/search", async (req, res) => {
         };
         return out;
     });
-    // applying boost and sorting
+    // applying backlink boosting and sorting
     finalResult.sort(
         (a, b) =>
             getBacklinkBoost(b.backlinkCount!) * b.rrfScore -
             getBacklinkBoost(a.backlinkCount!) * a.rrfScore,
     );
+    // use the hydration query to get the final results with ids
+    const paginatedResults = finalResult.slice(0, 10);
+    const args: GetPagesByIdArgs = {
+        ids: paginatedResults.map((p) => p.id),
+    };
+    const _results = await getPagesById(dbClient, args);
+    // map the paginated results back to have terms and type properties for info
+    const results = _results.map((row) => {
+        const og = paginatedResults.find((p) => p.id === row.id)!;
+
+        return {
+            ...og,
+            ...row,
+        };
+    });
 
     const endTime = Date.now() - startTime;
     res.status(200).json({
         corrected,
         q: finalQuery,
         skippedVocabDbCall: cachedVocab,
-        results: finalResult.slice(0, 10),
+        results,
         durations: {
             totalTime: endTime,
             cleanTime, // including tokenization and cleaning
@@ -259,6 +273,7 @@ app.get("/search", async (req, res) => {
 });
 
 app.get("/images", async (req, res) => {
+    const startTime = Date.now();
     // embed the query text
     const q = req.query["q"] as string;
     if (q.trim().length <= 0)
@@ -276,12 +291,14 @@ app.get("/images", async (req, res) => {
         throw ERRORS.NOTFOUND("didn't find any images somehow");
 
     res.status(200).json({
+        totalTime: Date.now() - startTime,
         images,
     });
 });
 // gets the forward and back links to a page
 // for a nice ui page
 app.get("/links/:id", async (req, res) => {
+    const startTime = Date.now();
     const id = Number.parseInt(req.params.id);
     if (Number.isNaN(id))
         throw ERRORS.BAD_REQUEST(
@@ -301,6 +318,7 @@ app.get("/links/:id", async (req, res) => {
         );
     // if title is null it means it wasn't indexed yet
     res.status(200).json({
+        totalTime: Date.now() - startTime,
         backlinks,
         forwardlinks,
     });
