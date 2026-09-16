@@ -1,4 +1,5 @@
 /* === SearchBar component === */
+import { useRef, useEffect } from 'react';
 import styles from './SearchBar.module.css';
 
 interface Props {
@@ -10,6 +11,28 @@ interface Props {
 }
 
 export default function SearchBar({ value, onChange, onSubmit, autoFocus, compact }: Props) {
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      if (e.key === '/' && document.activeElement !== inputRef.current) {
+        const target = e.target as HTMLElement | null;
+        const isInput =
+          target instanceof HTMLInputElement ||
+          target instanceof HTMLTextAreaElement ||
+          target?.isContentEditable;
+        if (!isInput) {
+          e.preventDefault();
+          inputRef.current?.focus();
+          inputRef.current?.select();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, []);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (value.trim()) onSubmit(value.trim());
@@ -47,6 +70,7 @@ export default function SearchBar({ value, onChange, onSubmit, autoFocus, compac
         </svg>
 
         <input
+          ref={inputRef}
           id="search-input"
           type="search"
           className={styles.input}
@@ -60,11 +84,29 @@ export default function SearchBar({ value, onChange, onSubmit, autoFocus, compac
           aria-label="Search query"
         />
 
+        {!value && (
+          <button
+            type="button"
+            className={styles.slashHint}
+            onClick={() => {
+              inputRef.current?.focus();
+              inputRef.current?.select();
+            }}
+            title="Press / to search"
+            aria-label="Focus search input"
+          >
+            /
+          </button>
+        )}
+
         {value && (
           <button
             type="button"
             className={styles.clear}
-            onClick={() => onChange('')}
+            onClick={() => {
+              onChange('');
+              inputRef.current?.focus();
+            }}
             aria-label="Clear search"
           >
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">

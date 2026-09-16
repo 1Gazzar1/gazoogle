@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, useMemo } from "react";
 import styles from "./GraphPage.module.css";
 import ForceGraph2D from "react-force-graph-2d";
 
-const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:8080";
+const API_BASE = "/api";
 
 interface Props {
   pageId: number;
@@ -130,7 +130,7 @@ export default function GraphPage({ pageId, pageTitle, pageUrl, onBack }: Props)
     });
     
     return { nodes: Array.from(nodes.values()), links };
-  }, [data, pageId]);
+  }, [data, pageId, pageTitle, pageUrl]);
 
   return (
     <div className={styles.page}>
@@ -138,7 +138,7 @@ export default function GraphPage({ pageId, pageTitle, pageUrl, onBack }: Props)
         <button className={styles.backBtn} onClick={onBack}>
           &larr; Back to Results
         </button>
-        <h2>Page Graph: {pageTitle}</h2>
+        <h2>Page Graph: {pageTitle || `Page #${pageId}`}</h2>
       </header>
 
       <main className={styles.content}>

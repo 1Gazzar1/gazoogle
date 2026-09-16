@@ -16,9 +16,16 @@ export interface ImageResult {
   altText: string;
 }
 
+export interface PaginationInfo {
+  totalResults: number;
+  page: number;
+  pageSize: number;
+}
+
 export interface SearchResponse {
   corrected: boolean;
   q: string[];
+  pagination?: PaginationInfo;
   results: SearchResult[];
 }
 

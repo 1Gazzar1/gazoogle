@@ -79,6 +79,8 @@
   width: 28px;
   height: 28px;
   background: transparent;
+  border: none;
+  cursor: pointer;
   border-radius: var(--radius-pill);
   color: var(--text-muted);
   transition: color var(--transition-fast), background var(--transition-fast);
@@ -92,6 +94,41 @@
 .clear svg {
   width: 14px;
   height: 14px;
+  pointer-events: none;
+}
+
+.slashHint {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  margin-right: var(--space-2);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+  transition: all var(--transition-fast);
+}
+
+.slashHint:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.12);
+  border-color: var(--border-active);
+}
+
+.compact .slashHint {
+  min-width: 20px;
+  height: 20px;
+  padding: 0 4px;
+  font-size: 0.7rem;
+  margin-right: var(--space-1);
 }
 
 .submit {
@@ -103,6 +140,8 @@
   height: 36px;
   margin-right: var(--space-1);
   background: var(--accent-2);
+  border: none;
+  cursor: pointer;
   border-radius: var(--radius-pill);
   color: white;
   transition: opacity var(--transition-fast), transform var(--transition-fast), box-shadow var(--transition-fast);
@@ -127,4 +166,5 @@
 .submit svg {
   width: 16px;
   height: 16px;
+  pointer-events: none;
 }

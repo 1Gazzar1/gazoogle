@@ -1,0 +1,195 @@
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: var(--space-8) 0 var(--space-12);
+  user-select: none;
+  font-family: var(--font-display);
+}
+
+.wrapper {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-6);
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-md);
+  overflow-x: auto;
+  max-width: 100%;
+}
+
+/* Navigation buttons (Previous / Next) */
+.navBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  background: transparent;
+  border: none;
+  color: var(--accent-2);
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  transition: color var(--transition-fast), background var(--transition-fast), transform var(--transition-fast);
+  margin-bottom: 2px;
+}
+
+.navBtn:hover:not(:disabled) {
+  color: var(--text-primary);
+  background: var(--bg-input);
+  transform: translateY(-1px);
+}
+
+.navBtn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.navBtn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.navBtn svg {
+  width: 16px;
+  height: 16px;
+  pointer-events: none;
+}
+
+/* Logo container containing g a z, the o columns, and g l e */
+.wordTrack {
+  display: flex;
+  align-items: flex-start;
+  line-height: 1;
+}
+
+/* Prefix: g a z */
+.prefix {
+  display: flex;
+  align-items: flex-start;
+  font-size: 2.5rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  padding-right: 1px;
+}
+
+.letterG { color: #cc2828; }
+.letterA { color: #e05252; }
+.letterZ { color: #c44062; }
+
+/* Suffix: g l e */
+.suffix {
+  display: flex;
+  align-items: flex-start;
+  font-size: 2.5rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  padding-left: 1px;
+}
+
+.letterG2 { color: #7c5cf6; }
+.letterL  { color: #a78bfa; }
+.letterE  { color: #7c5cf6; }
+
+/* Track for each page item */
+.pagesTrack {
+  display: flex;
+  align-items: flex-start;
+}
+
+/* Page item column: letter 'o' stacked over the page number */
+.pageItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0 4px;
+  color: inherit;
+  font-family: inherit;
+  text-decoration: none;
+  transition: transform var(--transition-fast);
+  border-radius: var(--radius-sm);
+}
+
+.pageItem:focus-visible {
+  outline: 2px solid var(--accent-1);
+  outline-offset: 2px;
+}
+
+.pageItem:hover:not(.activePage) {
+  transform: translateY(-2px);
+}
+
+.pageItem:hover:not(.activePage) .letterO {
+  filter: brightness(1.25);
+  transform: scale(1.08);
+}
+
+.pageItem:hover:not(.activePage) .pageNum {
+  color: var(--text-primary);
+  text-decoration: underline;
+}
+
+/* Letter O */
+.letterO {
+  display: block;
+  font-size: 2.5rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--accent-2);
+  transition: all var(--transition-fast);
+  text-shadow: 0 2px 8px rgba(245, 158, 11, 0.2);
+}
+
+/* Page number under each O */
+.pageNum {
+  display: block;
+  margin-top: var(--space-1);
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--accent-2);
+  line-height: 1.2;
+  transition: color var(--transition-fast);
+}
+
+/* Active page */
+.activePage {
+  cursor: default;
+}
+
+.activeO {
+  color: #cc2828; /* Highlighted red for active o */
+  text-shadow: 0 0 16px rgba(204, 40, 40, 0.6);
+  transform: scale(1.05);
+}
+
+.activePage .pageNum {
+  color: var(--text-primary);
+  font-weight: 700;
+  text-decoration: none !important;
+}
+
+@media (max-width: 640px) {
+  .wrapper {
+    gap: var(--space-2);
+    padding: var(--space-3) var(--space-3);
+  }
+
+  .prefix, .suffix, .letterO {
+    font-size: 2rem;
+  }
+
+  .pageItem {
+    padding: 0 2px;
+  }
+
+  .navBtn span {
+    display: none;
+  }
+}

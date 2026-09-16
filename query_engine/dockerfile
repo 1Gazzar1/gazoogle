@@ -10,5 +10,8 @@ COPY . .
 
 RUN npm run build
 
+# making a dummy .env so it doesn't crash 
+RUN touch .env 
+
 CMD ["npm", "run", "start"]
 

@@ -9,7 +9,7 @@ import { initDb } from "@/db/db.js";
 import { getBM25 } from "@/util/bm25.js";
 import { getDocInfo } from "@/internal/metadata_sql.js";
 import { embed } from "@/util/embeddings.js";
-import { b, k1, SearchLimit } from "@/constants/constants.js";
+import { b, k1 } from "@/constants/constants.js";
 import {
     searchPageEmbeddings,
     searchImageEmbeddings,
@@ -24,14 +24,13 @@ import {
     getForwardlinks,
 } from "@/internal/links_sql.js";
 import { getBacklinkBoost } from "@/util/backlinkBoost.js";
-import { time } from "node:console";
 import { vocabBuckets } from "@/util/vocab.js";
 import {
     getBM25RelevantInfoByWords,
-    getBM25RelevantInfoByWordsQuery,
     getPagesById,
     GetPagesByIdArgs,
 } from "@/internal/retreival_sql.js";
+import { maxHeaderSize } from "node:http";
 
 loadEnvFile();
 
@@ -68,7 +67,15 @@ let LAST_VOCAB_CALL: number = 0;
 app.get("/search", async (req, res) => {
     const startTime = Date.now();
 
-    const q = req.query["q"] as string;
+    const q = req.query["q"];
+    if (!q || typeof q !== "string") throw ERRORS.BAD_REQUEST("invalid query");
+    const _page = req.query["page"] ?? 1;
+    const page = Number.parseInt(_page as string);
+    const _pageSize = req.query["pageSize"] ?? 10;
+    const pageSize = Number.parseInt(_pageSize as string);
+
+    const LIMIT = Math.max(100, pageSize * page);
+
     const qWords = cleanQuery(q);
 
     const cleanTime = Date.now() - startTime;
@@ -138,7 +145,7 @@ app.get("/search", async (req, res) => {
     const dbEmbeddingStartTime = Date.now();
     const _embeddingResults = await searchPageEmbeddings(dbClient, {
         embedding: JSON.stringify(qEmbedding),
-        count: SearchLimit,
+        count: LIMIT,
     });
     const dbEmbeddingTime = Date.now() - dbEmbeddingStartTime;
 
@@ -204,7 +211,7 @@ app.get("/search", async (req, res) => {
     // rrf to combine both results into one
     const rrfStartTime = Date.now();
     const rrfResults = rrf(
-        bm25Results.slice(0, SearchLimit), // only take the best 100 pages from bm25, if you take all, embedding will almost always win
+        bm25Results.slice(0, LIMIT), // only take the best 100 pages from bm25, if you take all, embedding will almost always win
         embeddingResults,
     );
     const rrfTime = Date.now() - rrfStartTime;
@@ -235,26 +242,32 @@ app.get("/search", async (req, res) => {
             getBacklinkBoost(a.backlinkCount!) * a.rrfScore,
     );
     // use the hydration query to get the final results with ids
-    const paginatedResults = finalResult.slice(0, 10);
+    const paginatedResults = finalResult.slice(
+        (page - 1) * pageSize,
+        page * pageSize,
+    );
     const args: GetPagesByIdArgs = {
         ids: paginatedResults.map((p) => p.id),
     };
     const _results = await getPagesById(dbClient, args);
-    // map the paginated results back to have terms and type properties for info
-    const results = _results.map((row) => {
-        const og = paginatedResults.find((p) => p.id === row.id)!;
+    // map the paginated results back to have terms and type properties for info preserving order
+    const resultMap = new Map(_results.map((row) => [row.id, row]));
 
-        return {
-            ...og,
-            ...row,
-        };
-    });
+    const results = paginatedResults.map((page) => ({
+        ...page,
+        ...resultMap.get(page.id),
+    }));
 
     const endTime = Date.now() - startTime;
     res.status(200).json({
         corrected,
         q: finalQuery,
         skippedVocabDbCall: cachedVocab,
+        pagination: {
+            totalResults: finalResult.length,
+            page,
+            pageSize,
+        },
         results,
         durations: {
             totalTime: endTime,
@@ -284,7 +297,7 @@ app.get("/images", async (req, res) => {
     // search against the images alt text in the db
     const images = await searchImageEmbeddings(dbClient, {
         embedding: JSON.stringify(qEmbedding),
-        count: SearchLimit,
+        count: 100,
     });
 
     if (!images || images.length <= 0)

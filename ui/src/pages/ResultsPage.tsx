@@ -4,44 +4,57 @@ import type { SearchResponse, ImagesResponse, SearchView } from "../types";
 import SearchBar from "../components/SearchBar";
 import ResultCard from "../components/ResultCard";
 import ImageCard from "../components/ImageCard";
+import Pagination from "../components/Pagination";
 import styles from "./ResultsPage.module.css";
 
-const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:8080";
+const API_BASE = "/api";
 
 interface Props {
     initialQuery: string;
-    onSearch: (q: string) => void;
+    initialPage?: number;
+    initialView?: SearchView;
+    onSearch: (q: string, page?: number) => void;
+    onPageChange: (page: number) => void;
+    onViewChange?: (v: SearchView) => void;
     onHome: () => void;
     onOpenGraph: (pageId: number, title: string, url: string) => void;
-}
+} 
 
 type Status = "idle" | "loading" | "error" | "success";
 
-export default function ResultsPage({ initialQuery, onSearch, onHome, onOpenGraph }: Props) {
+export default function ResultsPage( {
+    initialQuery,
+    initialPage = 1,
+    initialView = "web",
+    onSearch,
+    onPageChange,
+    onViewChange,
+    onHome,
+    onOpenGraph,
+} :  Props) {
     const [query, setQuery] = useState(initialQuery);
-    const [view, setView] = useState<SearchView>("web");
+    const [view, setView] = useState<SearchView>(initialView);
     const [status, setStatus] = useState<Status>("idle");
     const [webData, setWebData] = useState<SearchResponse | null>(null);
     const [imgData, setImgData] = useState<ImagesResponse | null>(null);
     const [error, setError] = useState<string>("");
-    
 
-    const [debouncedQuery, setDebouncedQuery] = useState(initialQuery);
+    // Sync state when props change (from URL back/forward navigation)
+    useEffect(() => {
+        setQuery(initialQuery);
+    }, [initialQuery]);
 
     useEffect(() => {
-        const timer = setTimeout(() => {
-            setDebouncedQuery(query);
-            onSearch(query);
-        }, 1000);
-        return () => clearTimeout(timer);
-    }, [query, onSearch]);
+        setView(initialView);
+    }, [initialView]);
 
-    const fetchWeb = useCallback(async (q: string) => {
+    const fetchWeb = useCallback(async (q: string, page: number = 1) => {
+        if (!q.trim()) return;
         setStatus("loading");
         setError("");
         try {
             const res = await fetch(
-                `${API_BASE}/search?q=${encodeURIComponent(q)}`,
+                `${API_BASE}/search?q=${encodeURIComponent(q)}&page=${page}&pageSize=10`,
             );
             if (!res.ok) {
                 const text = await res.text();
@@ -59,8 +72,7 @@ export default function ResultsPage({ initialQuery, onSearch, onHome, onOpenGrap
     }, []);
 
     const fetchImages = useCallback(async (q: string) => {
-        setStatus("loading");
-        setError("");
+        if (!q.trim()) return;
         try {
             const res = await fetch(
                 `${API_BASE}/images?q=${encodeURIComponent(q)}`,
@@ -71,37 +83,62 @@ export default function ResultsPage({ initialQuery, onSearch, onHome, onOpenGrap
             }
             const data: ImagesResponse = await res.json();
             setImgData(data);
-            setStatus("success");
-        } catch (err) {
-            setError(
-                err instanceof Error ? err.message : "Something went wrong",
-            );
-            setStatus("error");
+        } catch {
+            // Images are complementary in web view, don't fail entire page
         }
     }, []);
 
-    // Run search on mount and when query/view changes
+    // Run search whenever query, page, or view changes from props
     useEffect(() => {
+        if (!initialQuery.trim()) return;
         if (view === "web") {
-            fetchWeb(debouncedQuery);
-            fetchImages(debouncedQuery);
+            fetchWeb(initialQuery, initialPage);
+            fetchImages(initialQuery);
         } else {
-            fetchImages(debouncedQuery);
+            setStatus("loading");
+            setError("");
+            fetch(`${API_BASE}/images?q=${encodeURIComponent(initialQuery)}`)
+                .then(async (res) => {
+                    if (!res.ok) throw new Error(await res.text() || `Error ${res.status}`);
+                    return res.json();
+                })
+                .then((data: ImagesResponse) => {
+                    setImgData(data);
+                    setStatus("success");
+                })
+                .catch((err) => {
+                    setError(err instanceof Error ? err.message : "Failed to load images");
+                    setStatus("error");
+                });
         }
-    }, [debouncedQuery, view, fetchWeb, fetchImages]);
+    }, [initialQuery, initialPage, view, fetchWeb, fetchImages]);
 
-    const handleSearch = (q: string) => {
-        setQuery(q);
-        setDebouncedQuery(q);
-        onSearch(q);
-        setWebData(null);
-        setImgData(null);
+    const handleSearch = (newQ: string) => {
+        const trimmed = newQ.trim();
+        if (!trimmed) return;
+        setQuery(trimmed);
+
+        // If query and page are identical, force refresh
+        if (trimmed === initialQuery && initialPage === 1) {
+            if (view === "web") {
+                fetchWeb(trimmed, 1);
+                fetchImages(trimmed);
+            } else {
+                fetchImages(trimmed);
+            }
+        } else {
+            onSearch(trimmed, 1);
+        }
     };
 
     const handleViewChange = (v: SearchView) => {
         setView(v);
-        setWebData(null);
-        setImgData(null);
+        onViewChange?.(v);
+    };
+
+    const handlePageChange = (newPage: number) => {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+        onPageChange(newPage);
     };
 
     return (
@@ -113,7 +150,17 @@ export default function ResultsPage({ initialQuery, onSearch, onHome, onOpenGrap
                     onClick={onHome}
                     aria-label="Go to Gazoogle home"
                 >
-                    <img src="/my-logo.png" alt="Gz" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'inherit', imageRendering: 'pixelated' }} />
+                    <img
+                        src="/my-logo.png"
+                        alt="Gz"
+                        style={{
+                            width: "100%",
+                            height: "100%",
+                            objectFit: "cover",
+                            borderRadius: "inherit",
+                            imageRendering: "pixelated",
+                        }}
+                    />
                 </button>
 
                 <div className={styles.searchWrap}>
@@ -212,8 +259,8 @@ export default function ResultsPage({ initialQuery, onSearch, onHome, onOpenGrap
                             className={styles.retryBtn}
                             onClick={() =>
                                 view === "web"
-                                    ? fetchWeb(query)
-                                    : fetchImages(query)
+                                    ? (fetchWeb(initialQuery, initialPage), fetchImages(initialQuery))
+                                    : fetchImages(initialQuery)
                             }
                         >
                             Try again
@@ -251,13 +298,19 @@ export default function ResultsPage({ initialQuery, onSearch, onHome, onOpenGrap
                             )}
 
                             <p className={styles.resultCount}>
-                                {webData.results.length} result
-                                {webData.results.length !== 1 ? "s" : ""}
+                                {webData.pagination
+                                    ? `About ${webData.pagination.totalResults} result${webData.pagination.totalResults !== 1 ? "s" : ""}`
+                                    : `${webData.results.length} result${webData.results.length !== 1 ? "s" : ""}`}
                             </p>
 
                             <div className={styles.resultsList}>
                                 {webData.results.map((r, i) => (
-                                    <ResultCard key={r.id} result={r} index={i} onOpenGraph={onOpenGraph} />
+                                    <ResultCard
+                                        key={r.id}
+                                        result={r}
+                                        index={i}
+                                        onOpenGraph={onOpenGraph}
+                                    />
                                 ))}
                             </div>
 
@@ -272,6 +325,17 @@ export default function ResultsPage({ initialQuery, onSearch, onHome, onOpenGrap
                                     <h2>No results found</h2>
                                     <p>Try a different search term.</p>
                                 </div>
+                            )}
+
+                            {/* Classic Gazoogle Pagination */}
+                            {webData.results.length > 0 && (
+                                <Pagination
+                                    currentPage={initialPage}
+                                    pageSize={webData.pagination?.pageSize ?? 10}
+                                    total={webData.pagination?.totalResults}
+                                    hasMore={webData.results.length === (webData.pagination?.pageSize ?? 10)}
+                                    onPageChange={handlePageChange}
+                                />
                             )}
                         </section>
 
