@@ -25,7 +25,9 @@ export interface PaginationInfo {
 export interface SearchResponse {
     corrected: boolean;
     q: string[];
-    totalTime: number;
+    durations: {
+        totalTime: number;
+    };
     pagination?: PaginationInfo;
     results: SearchResult[];
 }

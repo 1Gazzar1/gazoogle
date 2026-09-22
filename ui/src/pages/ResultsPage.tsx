@@ -318,7 +318,7 @@ export default function ResultsPage({
                                     ? `About ${webData.pagination.totalResults} result${webData.pagination.totalResults !== 1 ? "s" : ""}`
                                     : `${webData.results.length} result${webData.results.length !== 1 ? "s" : ""}`}
                                 <span className={styles.serverTime}>
-                                    Server: {webData.totalTime} ms
+                                    Server: {webData.durations.totalTime} ms
                                 </span>
                             </p>
 
