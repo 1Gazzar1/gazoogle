@@ -2,9 +2,20 @@ x-common-env: &common-env
   REDIS_DB: redis:6379
   POSTGRES_DB: postgres://gazoogle:gazoogle@postgres:5432/gazoogle
   EMBEDDING_URL: http://embedding:80
-  VITE_API_URL: http://query_engine:8080
+  # VITE_API_URL: http://query_engine:8080 # this is redundant
   PORT: 8080
 services:
+  reverse_proxy:
+    image: caddy:2.11.4-alpine
+    restart: "unless-stopped"
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./conf:/etc/caddy
+      - caddy_data:/data
+      - caddy_config:/config
+
   crawler:
     build:
       context: ./crawler
@@ -31,15 +42,16 @@ services:
     build:
       context: ./query_engine
       dockerfile: dockerfile
-    depends_on:
-      - postgres
-      - embedding
     restart: "always"
     environment:
       <<: *common-env
 
-    ports:
-      - "8080:8080"
+    # ports:
+    #   - "8080:8080"
+
+    depends_on:
+      - postgres
+      - embedding
 
   ui:
     build:
@@ -48,16 +60,18 @@ services:
     restart: "always"
     environment:
       <<: *common-env
-    ports:
-      - "80:80"
+    # ports:
+    #   - "80:80"
     depends_on:
       - query_engine
 
   redis:
     image: redis:8
     restart: "unless-stopped"
-    ports:
-      - "6379:6379"
+    # ports:
+    #   - "6379:6379"
+    volumes:
+      - redis_data:/data
   postgres:
     image: pgvector/pgvector:pg18-trixie # pgvector image is identical to postgres but has the pgvector extension
     restart: "always"
@@ -65,18 +79,21 @@ services:
       - POSTGRES_DB=gazoogle
       - POSTGRES_USER=gazoogle
       - POSTGRES_PASSWORD=gazoogle
-    ports:
-      - "5555:5432" # 5432 was already in use lol
+    # ports:
+    #   - "5555:5432" # 5432 was already in use lol
     volumes:
       - pgdata:/var/lib/postgresql/data
   embedding:
     image: ghcr.io/huggingface/text-embeddings-inference:cpu-latest
     command: ["--model-id", "sentence-transformers/all-MiniLM-L6-v2"]
-    ports:
-      - "1234:80"
+    # ports:
+    #   - "1234:80"
     volumes:
       - "~/data:/data:z" # this will create a folder at ~/data for cache
     restart: "always"
 
 volumes:
   pgdata:
+  redis_data:
+  caddy_data:
+  caddy_config:

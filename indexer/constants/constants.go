@@ -15,7 +15,7 @@ var TagWeights = map[string]float32{
 const (
 	IndexerQueue = "indexer.queue"
 	Workers      = 10     // no of workers
-	PageLimit    = 100000 // we stop scraping if we reach this number
+	PageLimit    = 50000 // we stop scraping if we reach this number
 
 	MetricsFilePath = "./metrics.jsonl"
 )

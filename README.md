@@ -6,7 +6,7 @@ It's basically Google 30 years ago or so (probably worse).
 
 > just gazoogle it!
 
-I crawled and indexed 50k+ pages during testing.  
+I crawled and indexed 60k+ pages during testing.  
 
 
 #### Search Results

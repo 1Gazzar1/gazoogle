@@ -26,6 +26,7 @@ func (cnf *config) worker() {
 		}
 		// limit to stop the indexer if we reached our goal (1M pages indexed)
 		if num >= constants.PageLimit {
+			log.Printf("Reached Page Limit, Existing now...")
 			return
 		}
 		pd, err := db.GetNextPageData()

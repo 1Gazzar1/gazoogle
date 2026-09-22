@@ -1,0 +1,9 @@
+localhost { 
+    handle_path /api/* {
+        reverse_proxy query_engine:8080
+    }
+        
+    handle { 
+        reverse_proxy ui:80
+    }
+}
