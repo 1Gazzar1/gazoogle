@@ -30,29 +30,43 @@ import {
     getPagesById,
     GetPagesByIdArgs,
 } from "@/internal/retreival_sql.js";
-import { maxHeaderSize } from "node:http";
+import rateLimit from "express-rate-limit";
+import morgan from "morgan";
 
 loadEnvFile();
 
 export const app = express();
+
 const PORT = process.env.PORT;
 const POSTGRES = process.env.POSTGRES_DB;
 
 const dbClient = await initDb(POSTGRES);
+
+// rate-limiting
+const limiter = rateLimit({
+    windowMs: 10 * 60 * 1000, // 10 minutes
+    limit: 150,
+    standardHeaders: true,
+    legacyHeaders: false,
+    ipv6Subnet: 56,
+    message: { error: "Too many requests, bro chill." },
+});
+app.set(
+    "trust proxy",
+    1 /* number of proxies between user and server (only caddy)*/,
+);
 
 // middleware
 app.use(helmet());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cors());
-
-app.use((req, _, next) => {
-    const start = Date.now();
-    req.on("close", () => {
-        console.info(`${req.url} took ${Date.now() - start}ms`);
-    });
-    next();
-});
+app.use(limiter);
+app.use(
+    morgan(
+        ":remote-addr :method :url :status :res[content-length] - :response-time ms",
+    ),
+);
 
 app.get("/", (req, res) => {
     console.log(req.method, req.host, req.hostname);

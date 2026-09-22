@@ -16,13 +16,16 @@
   "dependencies": {
     "cors": "^2.8.6",
     "express": "^5.1.0",
+    "express-rate-limit": "^8.7.0",
     "fastest-levenshtein": "^1.0.16",
     "helmet": "^8.1.0",
+    "morgan": "^1.12.1",
     "pg": "^8.22.0"
   },
   "devDependencies": {
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.5",
+    "@types/morgan": "^1.9.10",
     "@types/node": "^24.9.1",
     "@types/pg": "^8.20.4",
     "tsc-alias": "^1.8.16",
