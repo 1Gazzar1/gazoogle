@@ -1,36 +1,38 @@
 /* === Types shared across UI === */
 
 export interface SearchResult {
-  id: number;
-  url: string;
-  heading: string;
-  title: string;
-  type: 'bm25' | 'embedding' | 'both';
-  bm25Score?: number;
-  terms?: { term: string; tf: number; df: number }[];
+    id: number;
+    url: string;
+    heading: string;
+    title: string;
+    type: "bm25" | "embedding" | "both";
+    bm25Score?: number;
+    terms?: { term: string; tf: number; df: number }[];
 }
 
 export interface ImageResult {
-  id: number;
-  url: string;
-  altText: string;
+    id: number;
+    url: string;
+    altText: string;
 }
 
 export interface PaginationInfo {
-  totalResults: number;
-  page: number;
-  pageSize: number;
+    totalResults: number;
+    page: number;
+    pageSize: number;
 }
 
 export interface SearchResponse {
-  corrected: boolean;
-  q: string[];
-  pagination?: PaginationInfo;
-  results: SearchResult[];
+    corrected: boolean;
+    q: string[];
+    totalTime: number;
+    pagination?: PaginationInfo;
+    results: SearchResult[];
 }
 
 export interface ImagesResponse {
-  images: ImageResult[];
+    totalTime: number;
+    images: ImageResult[];
 }
 
-export type SearchView = 'web' | 'images';
+export type SearchView = "web" | "images";

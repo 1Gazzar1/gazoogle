@@ -18,11 +18,11 @@ interface Props {
     onViewChange?: (v: SearchView) => void;
     onHome: () => void;
     onOpenGraph: (pageId: number, title: string, url: string) => void;
-} 
+}
 
 type Status = "idle" | "loading" | "error" | "success";
 
-export default function ResultsPage( {
+export default function ResultsPage({
     initialQuery,
     initialPage = 1,
     initialView = "web",
@@ -31,7 +31,7 @@ export default function ResultsPage( {
     onViewChange,
     onHome,
     onOpenGraph,
-} :  Props) {
+}: Props) {
     const [query, setQuery] = useState(initialQuery);
     const [view, setView] = useState<SearchView>(initialView);
     const [status, setStatus] = useState<Status>("idle");
@@ -99,7 +99,10 @@ export default function ResultsPage( {
             setError("");
             fetch(`${API_BASE}/images?q=${encodeURIComponent(initialQuery)}`)
                 .then(async (res) => {
-                    if (!res.ok) throw new Error(await res.text() || `Error ${res.status}`);
+                    if (!res.ok)
+                        throw new Error(
+                            (await res.text()) || `Error ${res.status}`,
+                        );
                     return res.json();
                 })
                 .then((data: ImagesResponse) => {
@@ -107,7 +110,11 @@ export default function ResultsPage( {
                     setStatus("success");
                 })
                 .catch((err) => {
-                    setError(err instanceof Error ? err.message : "Failed to load images");
+                    setError(
+                        err instanceof Error
+                            ? err.message
+                            : "Failed to load images",
+                    );
                     setStatus("error");
                 });
         }
@@ -259,7 +266,8 @@ export default function ResultsPage( {
                             className={styles.retryBtn}
                             onClick={() =>
                                 view === "web"
-                                    ? (fetchWeb(initialQuery, initialPage), fetchImages(initialQuery))
+                                    ? (fetchWeb(initialQuery, initialPage),
+                                      fetchImages(initialQuery))
                                     : fetchImages(initialQuery)
                             }
                         >
@@ -271,7 +279,10 @@ export default function ResultsPage( {
                 {/* Web results */}
                 {status === "success" && view === "web" && webData && (
                     <div className={styles.webLayout}>
-                        <section aria-label="Web search results" className={styles.webResults}>
+                        <section
+                            aria-label="Web search results"
+                            className={styles.webResults}
+                        >
                             {/* Correction notice */}
                             {webData.corrected && (
                                 <div
@@ -290,7 +301,12 @@ export default function ResultsPage( {
                                     >
                                         <circle cx="12" cy="12" r="10" />
                                         <line x1="12" y1="8" x2="12" y2="12" />
-                                        <line x1="12" y1="16" x2="12.01" y2="16" />
+                                        <line
+                                            x1="12"
+                                            y1="16"
+                                            x2="12.01"
+                                            y2="16"
+                                        />
                                     </svg>
                                     Showing results for{" "}
                                     <strong>{webData.q.join(" ")}</strong>
@@ -301,6 +317,9 @@ export default function ResultsPage( {
                                 {webData.pagination
                                     ? `About ${webData.pagination.totalResults} result${webData.pagination.totalResults !== 1 ? "s" : ""}`
                                     : `${webData.results.length} result${webData.results.length !== 1 ? "s" : ""}`}
+                                <span className={styles.serverTime}>
+                                    Server: {webData.totalTime} ms
+                                </span>
                             </p>
 
                             <div className={styles.resultsList}>
@@ -331,21 +350,35 @@ export default function ResultsPage( {
                             {webData.results.length > 0 && (
                                 <Pagination
                                     currentPage={initialPage}
-                                    pageSize={webData.pagination?.pageSize ?? 10}
+                                    pageSize={
+                                        webData.pagination?.pageSize ?? 10
+                                    }
                                     total={webData.pagination?.totalResults}
-                                    hasMore={webData.results.length === (webData.pagination?.pageSize ?? 10)}
+                                    hasMore={
+                                        webData.results.length ===
+                                        (webData.pagination?.pageSize ?? 10)
+                                    }
                                     onPageChange={handlePageChange}
                                 />
                             )}
                         </section>
 
                         {imgData && imgData.images.length > 0 && (
-                            <aside className={styles.webImages} aria-label="Top images">
+                            <aside
+                                className={styles.webImages}
+                                aria-label="Top images"
+                            >
                                 <h3>Images</h3>
                                 <div className={styles.webImageGrid}>
-                                    {imgData.images.slice(0, 5).map((img, i) => (
-                                        <ImageCard key={img.id} image={img} index={i} />
-                                    ))}
+                                    {imgData.images
+                                        .slice(0, 5)
+                                        .map((img, i) => (
+                                            <ImageCard
+                                                key={img.id}
+                                                image={img}
+                                                index={i}
+                                            />
+                                        ))}
                                 </div>
                             </aside>
                         )}
@@ -358,6 +391,9 @@ export default function ResultsPage( {
                         <p className={styles.resultCount}>
                             {imgData.images.length} image
                             {imgData.images.length !== 1 ? "s" : ""}
+                            <span className={styles.serverTime}>
+                                Server: {imgData.totalTime} ms
+                            </span>
                         </p>
 
                         <div className={styles.imageGrid}>

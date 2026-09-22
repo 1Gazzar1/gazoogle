@@ -149,8 +149,8 @@ app.get("/search", async (req, res) => {
     });
     const dbBM25ime = Date.now() - dbBM25StartTime;
 
-    if (!data || data.length <= 0)
-        throw ERRORS.NOTFOUND("no bm25 results, somehow ?");
+    if (!data)
+        throw ERRORS.NOTFOUND("no bm25 results returned, idk why or how");
 
     const embeddingStartTime = Date.now();
     const qEmbedding = await embed(q); // i decided to embed the actual query and not the cleaned version,
@@ -163,8 +163,8 @@ app.get("/search", async (req, res) => {
     });
     const dbEmbeddingTime = Date.now() - dbEmbeddingStartTime;
 
-    if (!_embeddingResults || _embeddingResults.length <= 0)
-        throw ERRORS.NOTFOUND("no embedding results, somehow ?");
+    if (!_embeddingResults)
+        throw ERRORS.NOTFOUND("no embedding results returned, idk why or how");
 
     const embeddingResults = _embeddingResults.map((row): EmbeddingPage => {
         return {
@@ -229,7 +229,10 @@ app.get("/search", async (req, res) => {
         embeddingResults,
     );
     const rrfTime = Date.now() - rrfStartTime;
-
+    if (rrfResults.length <= 0)
+        throw ERRORS.NOTFOUND(
+            "your query somehow didn't match any vector or bm25 results, that's impressive ngl",
+        );
     const dbBacklinkStartTime = Date.now();
     const backlinks = await getBacklinkCount(dbClient, {
         linkIds: rrfResults.map((r) => r.id),
