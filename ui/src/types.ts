@@ -6,6 +6,8 @@ export interface SearchResult {
     heading: string;
     title: string;
     type: "bm25" | "embedding" | "both";
+    backlinkCount?: number;
+    backlinkBoost?: number;
     bm25Score?: number;
     terms?: { term: string; tf: number; df: number }[];
 }

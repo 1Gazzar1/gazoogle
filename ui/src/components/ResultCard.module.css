@@ -170,6 +170,10 @@
     color: var(--text-1);
 }
 
+.scoreInfo + .scoreInfo {
+    margin-top: var(--space-1);
+}
+
 @media (max-width: 760px) {
     .card {
         padding: var(--space-3) var(--space-4);

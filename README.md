@@ -4,15 +4,20 @@ gazoogle is a search engine, made from scratch by me to learn how search engines
 
 It's basically Google 30 years ago or so (probably worse).
 
+You can access the app from [here](https://gazoogle.duckdns.org:8443), I'm self hosting gazoogle using an old computer with a `duckdns` domain.
+
+It might not be _Live_ all the time.
+
+gazoogle currently has 60K+ Pages Crawled and Indexed.
+
 > just gazoogle it!
 
-I crawled and indexed 60k+ pages during testing.  
-
-
 #### Search Results
+
 ![1st screenshot of project](./readme-screenshots/image-4.png)
 
 #### Link Graph
+
 ![2nd screenshot of project](./readme-screenshots/image-3.png)
 
 ## Tech Stack
@@ -29,6 +34,7 @@ I crawled and indexed 60k+ pages during testing.
 - **Searching Pages**: search web pages by terms, with results ranked by combining BM25 and semantic vector search.
 - **Searching Images**: search images by their `alt` text with semantic vector search.
 - **Link Graph**: view a link graph per page showing its forward and back links.
+- **Other**: Spell Correction & Pagination
 
 ## Architecture
 
@@ -48,7 +54,9 @@ This is the high level overview of the app's architecture.
 
 - **Query Engine**: Takes user queries, does spell correction, searches the database, calculates BM25 on the fly, runs cosine vector search, then ranks and merges both result sets using RRF.
 
-- **UI**: A simple, user-friendly web application that uses the query engine as its backend API to expose the app's features.
+- **UI**: A responsive web application that uses the query engine as its backend API, presenting web results, image results, query corrections, loading and empty states, retryable errors, backlink boost, pagination, and link-graph navigation.
+
+- **Reverse Proxy**: I use `Caddy` as a reverve proxy to have `Let's Encrypt` to have `https` and to route the `api` calls internally.
 
 ### Other Components
 
@@ -63,7 +71,6 @@ This is the high level overview of the app's architecture.
 ![full excalidraw image](./readme-screenshots/image-2.svg)
 
 > go nuts
-
 
 ## Setup
 

@@ -1,6 +1,7 @@
 export interface BasePage {
     id: number;
     backlinkCount?: number;
+    backlinkBoost?: number;
 }
 
 export interface EmbeddingPage extends BasePage {

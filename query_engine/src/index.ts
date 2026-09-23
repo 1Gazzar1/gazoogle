@@ -246,17 +246,17 @@ app.get("/search", async (req, res) => {
     // adding backlinkcount as a param
     const finalResult = rrfResults.map((p) => {
         const backlinkCount = idToBacklinkCount[p.id] ?? 0;
+        const backlinkBoost = getBacklinkBoost(backlinkCount);
         const out: RRFPage = {
             ...p,
             backlinkCount,
+            backlinkBoost,
         };
         return out;
     });
     // applying backlink boosting and sorting
     finalResult.sort(
-        (a, b) =>
-            getBacklinkBoost(b.backlinkCount!) * b.rrfScore -
-            getBacklinkBoost(a.backlinkCount!) * a.rrfScore,
+        (a, b) => b.backlinkBoost! * b.rrfScore - a.backlinkBoost! * a.rrfScore,
     );
     // use the hydration query to get the final results with ids
     const paginatedResults = finalResult.slice(
