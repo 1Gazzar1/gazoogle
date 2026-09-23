@@ -4,9 +4,10 @@ gazoogle is a search engine, made from scratch by me to learn how search engines
 
 It's basically Google 30 years ago or so (probably worse).
 
-You can access the app from [here](https://gazoogle.duckdns.org:8443), I'm self hosting gazoogle using an old computer with a `duckdns` domain.
+You can access the live app [here](https://gazoogle.duckdns.org:8443).
+I'm self-hosting gazoogle using an old computer with a duckdns domain.
 
-It might not be _Live_ all the time.
+Since it's self-hosted, it might not be _live_ all the time.
 
 gazoogle currently has 60K+ Pages Crawled and Indexed.
 
@@ -28,6 +29,7 @@ gazoogle currently has 60K+ Pages Crawled and Indexed.
 - **Redis** — crawl frontier / message passing
 - **React** — UI
 - **Docker Compose** — orchestration
+- **Caddy** — reverse proxy and HTTPS
 
 ## Features
 
@@ -56,7 +58,7 @@ This is the high level overview of the app's architecture.
 
 - **UI**: A responsive web application that uses the query engine as its backend API, presenting web results, image results, query corrections, loading and empty states, retryable errors, backlink boost, pagination, and link-graph navigation.
 
-- **Reverse Proxy**: I use `Caddy` as a reverve proxy to have `Let's Encrypt` to have `https` and to route the `api` calls internally.
+- **Reverse Proxy**: I use `Caddy` as a reverse proxy to have `Let's Encrypt` to have `https` and to route the `api` calls internally.
 
 ### Other Components
 
