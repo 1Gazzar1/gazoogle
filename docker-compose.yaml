@@ -21,7 +21,7 @@ services:
       dockerfile: dockerfile
     depends_on:
       - redis
-    restart: "manual"
+    restart: "no"
     environment:
       <<: *common-env
   indexer:
@@ -32,7 +32,7 @@ services:
       - redis
       - postgres
       - embedding
-    restart: "manual"
+    restart: "no"
     environment:
       <<: *common-env
   query_engine:
@@ -67,7 +67,7 @@ services:
       - query_engine
   redis:
     image: redis:8
-    restart: "manual"
+    restart: "no"
     # ports:
     #   - "6379:6379"
     volumes:
@@ -79,8 +79,8 @@ services:
       - POSTGRES_DB=gazoogle
       - POSTGRES_USER=gazoogle
       - POSTGRES_PASSWORD=gazoogle
-    # ports:
-    #   - "5555:5432" # 5432 was already in use lol
+    ports:
+      - "5555:5432" # 5432 was already in use lol
     volumes:
       - pgdata:/var/lib/postgresql # new convention (no /data)
   embedding:
