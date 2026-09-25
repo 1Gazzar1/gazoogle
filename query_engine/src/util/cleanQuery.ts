@@ -9,3 +9,11 @@ export function cleanQuery(q: string) {
         .split(" ")
         .filter((word) => word.length >= 2 && !englishStopWords.has(word));
 }
+// it's basically the same function as above but doesn't remove stop words.
+// its purpose is to clean the query, spell correct then pass the whole correct sentenece
+// to the vector search, that way the vector doesn't take the raw query
+export function normalizeQuery(q: string) {
+    const cleaned = q.toLowerCase().replace(/[^a-zA-Z0-9]+/g, " ");
+    return cleaned.split(" ");
+}
+    

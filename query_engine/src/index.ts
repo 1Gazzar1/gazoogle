@@ -2,7 +2,7 @@ import express, { ErrorRequestHandler } from "express";
 import { CustomError, ERRORS } from "@/errors/error.js";
 import { loadEnvFile } from "node:process";
 import helmet from "helmet";
-import { cleanQuery } from "@/util/cleanQuery.js";
+import { normalizeQuery } from "@/util/cleanQuery.js";
 import { doLevenshtein } from "@/util/levenshtein.js";
 import { getAllVocab, GetAllVocabRow } from "@/internal/vocab_sql.js";
 import { initDb } from "@/db/db.js";
@@ -32,6 +32,7 @@ import {
 } from "@/internal/retreival_sql.js";
 import rateLimit from "express-rate-limit";
 import morgan from "morgan";
+import { englishStopWords } from "@/constants/stopWords.js";
 
 loadEnvFile();
 
@@ -90,16 +91,16 @@ app.get("/search", async (req, res) => {
 
     const LIMIT = Math.max(100, pageSize * page);
 
-    const qWords = cleanQuery(q);
+    const qWords = normalizeQuery(q); // this is with stop words
 
     const cleanTime = Date.now() - startTime;
 
     if (qWords.length <= 0) throw ERRORS.BAD_REQUEST("enter a valid query bro");
 
     let cachedVocab = true;
-    // if it was 10 mins since we made a db for vocab then do one
+    // if it was 1 hour since we made a db for vocab then do one
     const dbVocabStartTime = Date.now();
-    if (dbVocabStartTime - LAST_VOCAB_CALL > 1000 * 60 * 10) {
+    if (dbVocabStartTime - LAST_VOCAB_CALL > 1000 * 60 * 60) {
         VOCAB = await getAllVocab(dbClient);
         BUCKETS = vocabBuckets(VOCAB);
         LAST_VOCAB_CALL = dbVocabStartTime;
@@ -107,23 +108,23 @@ app.get("/search", async (req, res) => {
     }
     const dbVocabTime = Date.now() - dbVocabStartTime;
 
+    const correctionStartTime = Date.now();
+
     const vocabStems: Record<string, string> = {};
     VOCAB.forEach((row) => {
         vocabStems[row.word] = row.stem;
     });
 
-    const correctionStartTime = Date.now();
-
     let corrected = false;
 
-    const finalQuery = qWords.map((word) => {
-        if (vocabStems[word]) {
-            // exit early if the word is correct
+    const rawFinalQuery = qWords.map((word) => {
+        if (vocabStems[word] || englishStopWords.has(word)) {
+            // exit early if the word is correct or if it's a stop word
             return word;
         }
         const buckets = [
-            ...(BUCKETS[word.length + 1] ?? []),
             ...(BUCKETS[word.length] ?? []),
+            ...(BUCKETS[word.length + 1] ?? []),
             ...(BUCKETS[word.length - 1] ?? []),
         ];
         const closest = doLevenshtein(word, buckets);
@@ -135,12 +136,16 @@ app.get("/search", async (req, res) => {
     });
     const correctionTime = Date.now() - correctionStartTime;
 
-    if (finalQuery.length <= 0)
+    const cleanedFinalQuery = rawFinalQuery.filter(
+        (word) => word.length >= 2 && !englishStopWords.has(word),
+    );
+
+    if (cleanedFinalQuery.length <= 0)
         throw ERRORS.BAD_REQUEST(
             "your query was so generic it went to the shadow realm",
         );
 
-    const stems = finalQuery.map((q) => vocabStems[q]);
+    const stems = cleanedFinalQuery.map((q) => vocabStems[q]);
 
     const dbBM25StartTime = Date.now();
     // this gets a JOIN of 3 tables ( postings, terms and pages ) to gather all data to calc bm25
@@ -153,7 +158,7 @@ app.get("/search", async (req, res) => {
         throw ERRORS.NOTFOUND("no bm25 results returned, idk why or how");
 
     const embeddingStartTime = Date.now();
-    const qEmbedding = await embed(q); // i decided to embed the actual query and not the cleaned version,
+    const qEmbedding = await embed(rawFinalQuery.join(" ")); // embed the correct query with stop words
     const embeddingTime = Date.now() - embeddingStartTime;
 
     const dbEmbeddingStartTime = Date.now();
@@ -278,7 +283,8 @@ app.get("/search", async (req, res) => {
     const endTime = Date.now() - startTime;
     res.status(200).json({
         corrected,
-        q: finalQuery,
+        q: rawFinalQuery,
+        fullQ: cleanedFinalQuery,
         skippedVocabDbCall: cachedVocab,
         pagination: {
             totalResults: finalResult.length,
@@ -309,7 +315,31 @@ app.get("/images", async (req, res) => {
     if (q.trim().length <= 0)
         throw ERRORS.BAD_REQUEST("bro just search for something");
 
-    const qEmbedding = await embed(q);
+    const qWords = normalizeQuery(q);
+
+    const vocabStems: Record<string, string> = {};
+    VOCAB.forEach((row) => {
+        vocabStems[row.word] = row.stem;
+    });
+
+    const rawFinalQuery = qWords.map((word) => {
+        if (vocabStems[word] || englishStopWords.has(word)) {
+            // exit early if the word is correct or if it's a stop word
+            return word;
+        }
+        const buckets = [
+            ...(BUCKETS[word.length] ?? []),
+            ...(BUCKETS[word.length + 1] ?? []),
+            ...(BUCKETS[word.length - 1] ?? []),
+        ];
+        const closest = doLevenshtein(word, buckets);
+        if (word !== closest) {
+            return closest;
+        }
+        return word;
+    });
+
+    const qEmbedding = await embed(rawFinalQuery.join(" "));
 
     // search against the images alt text in the db
     const images = await searchImageEmbeddings(dbClient, {
