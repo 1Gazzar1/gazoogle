@@ -76,6 +76,7 @@ app.get("/", (req, res) => {
 
 // these are for spell correction
 let VOCAB: GetAllVocabRow[] = [];
+let VOCAB_STEMS: Record<string, string> = {}; // this apparently is a huge time waster, so it's a big optimization to cache this aswell
 let BUCKETS: Record<number, string[]> = [];
 let LAST_VOCAB_CALL: number = 0;
 
@@ -104,21 +105,21 @@ app.get("/search", async (req, res) => {
         VOCAB = await getAllVocab(dbClient);
         BUCKETS = vocabBuckets(VOCAB);
         LAST_VOCAB_CALL = dbVocabStartTime;
+
+        VOCAB.forEach((row) => {
+            VOCAB_STEMS[row.word] = row.stem;
+        });
+
         cachedVocab = false;
     }
     const dbVocabTime = Date.now() - dbVocabStartTime;
 
     const correctionStartTime = Date.now();
 
-    const vocabStems: Record<string, string> = {};
-    VOCAB.forEach((row) => {
-        vocabStems[row.word] = row.stem;
-    });
-
     let corrected = false;
 
     const rawFinalQuery = qWords.map((word) => {
-        if (vocabStems[word] || englishStopWords.has(word)) {
+        if (VOCAB_STEMS[word] || englishStopWords.has(word)) {
             // exit early if the word is correct or if it's a stop word
             return word;
         }
@@ -145,7 +146,7 @@ app.get("/search", async (req, res) => {
             "your query was so generic it went to the shadow realm",
         );
 
-    const stems = cleanedFinalQuery.map((q) => vocabStems[q]);
+    const stems = cleanedFinalQuery.map((q) => VOCAB_STEMS[q]);
 
     const dbBM25StartTime = Date.now();
     // this gets a JOIN of 3 tables ( postings, terms and pages ) to gather all data to calc bm25
@@ -283,8 +284,8 @@ app.get("/search", async (req, res) => {
     const endTime = Date.now() - startTime;
     res.status(200).json({
         corrected,
-        q: rawFinalQuery,
-        fullQ: cleanedFinalQuery,
+        q: cleanedFinalQuery,
+        fullQ: rawFinalQuery,
         skippedVocabDbCall: cachedVocab,
         pagination: {
             totalResults: finalResult.length,
@@ -317,13 +318,8 @@ app.get("/images", async (req, res) => {
 
     const qWords = normalizeQuery(q);
 
-    const vocabStems: Record<string, string> = {};
-    VOCAB.forEach((row) => {
-        vocabStems[row.word] = row.stem;
-    });
-
     const rawFinalQuery = qWords.map((word) => {
-        if (vocabStems[word] || englishStopWords.has(word)) {
+        if (VOCAB_STEMS[word] || englishStopWords.has(word)) {
             // exit early if the word is correct or if it's a stop word
             return word;
         }

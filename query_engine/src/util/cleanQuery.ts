@@ -14,6 +14,5 @@ export function cleanQuery(q: string) {
 // to the vector search, that way the vector doesn't take the raw query
 export function normalizeQuery(q: string) {
     const cleaned = q.toLowerCase().replace(/[^a-zA-Z0-9]+/g, " ");
-    return cleaned.split(" ");
+    return cleaned.split(" ").filter((word) => word.length > 0);
 }
-    
