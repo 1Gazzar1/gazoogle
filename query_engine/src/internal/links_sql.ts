@@ -7,7 +7,7 @@ interface Client {
 export const getBacklinkCountQuery = `-- name: GetBacklinkCount :many
 SELECT to_page_id,COUNT(*) AS backlink_count
 FROM links 
-WHERE to_page_id = ANY($1::int[])
+WHERE to_page_id = ANY($1::int[]) AND to_page_id != from_page_id -- correction for pages that link to them selves (most of them lol)
 GROUP BY to_page_id`;
 
 export interface GetBacklinkCountArgs {
@@ -37,7 +37,7 @@ export const getForwardlinksQuery = `-- name: GetForwardlinks :many
 SELECT from_page_id,to_page_id,url,title 
 FROM links 
 JOIN pages ON pages.id = to_page_id 
-WHERE from_page_id = $1::int`;
+WHERE from_page_id = $1::int  AND to_page_id != from_page_id`;
 
 export interface GetForwardlinksArgs {
     pageId: number;
@@ -70,7 +70,7 @@ export const getBacklinksQuery = `-- name: GetBacklinks :many
 SELECT from_page_id,to_page_id,url,title 
 FROM links 
 JOIN pages ON pages.id = from_page_id 
-WHERE to_page_id = $1::int`;
+WHERE to_page_id = $1::int AND to_page_id != from_page_id`;
 
 export interface GetBacklinksArgs {
     pageId: number;

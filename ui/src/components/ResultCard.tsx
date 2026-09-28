@@ -137,43 +137,74 @@ export default function ResultCard({ result, index, onOpenGraph }: Props) {
                 </div>
             )}
 
-            {/* BM25 Score */}
-            {result.bm25Score !== undefined && (
-                <div className={styles.scoreInfo}>
-                    BM25 Score: <strong>{result.bm25Score.toFixed(3)}</strong>
-                </div>
-            )}
-
-            {(result.backlinkCount !== undefined ||
-                result.backlinkBoost !== undefined) && (
-                <div className={styles.scoreInfo}>
-                    Backlinks: <strong>{result.backlinkCount ?? 0}</strong>
-                    {result.backlinkBoost !== undefined && (
-                        <>
-                            {" "}
-                            · Boost:{" "}
-                            <strong>{result.backlinkBoost.toFixed(2)}x</strong>
-                        </>
+            {(result.bm25Score !== undefined ||
+                result.backlinkCount !== undefined ||
+                result.backlinkBoost !== undefined ||
+                result.rrfScore !== undefined ||
+                result.relevanceBoost !== undefined ||
+                result.finalScore !== undefined) && (
+                <div className={styles.scoreInfo} aria-label="Ranking details">
+                    {(result.bm25Score !== undefined ||
+                        result.rrfScore !== undefined ||
+                        result.finalScore !== undefined) && (
+                        <div className={styles.scoreLine}>
+                            <span className={styles.scoreLabel}>Scores:</span>
+                            {result.bm25Score !== undefined && (
+                                <span>
+                                    BM25 score{" "}
+                                    <strong>
+                                        {result.bm25Score.toFixed(3)}
+                                    </strong>
+                                </span>
+                            )}
+                            {result.rrfScore !== undefined && (
+                                <span>
+                                    RRF score{" "}
+                                    <strong>
+                                        {result.rrfScore.toFixed(5)}
+                                    </strong>
+                                </span>
+                            )}
+                            {result.finalScore !== undefined && (
+                                <span>
+                                    Final score{" "}
+                                    <strong>
+                                        {result.finalScore.toFixed(5)}
+                                    </strong>
+                                </span>
+                            )}
+                        </div>
                     )}
-                </div>
-            )}
-
-            {result.rrfScore !== undefined && (
-                <div className={styles.scoreInfo}>
-                    RRF Score: <strong>{result.rrfScore.toFixed(5)}</strong>
-                </div>
-            )}
-
-            {result.relevanceBoost !== undefined && (
-                <div className={styles.scoreInfo}>
-                    Relevance Boost:{" "}
-                    <strong>{result.relevanceBoost.toFixed(2)}x</strong>
-                </div>
-            )}
-
-            {result.finalScore !== undefined && (
-                <div className={styles.scoreInfo}>
-                    Final Score: <strong>{result.finalScore.toFixed(5)}</strong>
+                    {(result.backlinkCount !== undefined ||
+                        result.backlinkBoost !== undefined ||
+                        result.relevanceBoost !== undefined) && (
+                        <div className={styles.scoreLine}>
+                            <span className={styles.scoreLabel}>Boosts:</span>
+                            {(result.backlinkCount !== undefined ||
+                                result.backlinkBoost !== undefined) && (
+                                <span>
+                                    Backlinks{" "}
+                                    <strong>{result.backlinkCount ?? 0}</strong>
+                                </span>
+                            )}
+                            {result.backlinkBoost !== undefined && (
+                                <span>
+                                    Backlink boost{" "}
+                                    <strong>
+                                        {result.backlinkBoost.toFixed(2)}x
+                                    </strong>
+                                </span>
+                            )}
+                            {result.relevanceBoost !== undefined && (
+                                <span>
+                                    Relevance boost{" "}
+                                    <strong>
+                                        {result.relevanceBoost.toFixed(2)}x
+                                    </strong>
+                                </span>
+                            )}
+                        </div>
+                    )}
                 </div>
             )}
         </article>

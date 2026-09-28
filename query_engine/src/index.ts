@@ -282,11 +282,14 @@ app.get("/search", async (req, res) => {
         // apply a boost depending on if the pages have in thier url,heading or title query words
         // had to do it here after the hydration query
         // let's call it relevance boost
-        const relevanceBoost = getDomainTitleBoost(cleanedFinalQuery, page);
-        const finalScore = page.backlinkBoost! * page.rrfScore * relevanceBoost;
-        return {
+        const _page = {
             ...page,
             ...resultMap.get(page.id),
+        };
+        const relevanceBoost = getDomainTitleBoost(cleanedFinalQuery, _page);
+        const finalScore = page.backlinkBoost! * page.rrfScore * relevanceBoost;
+        return {
+            ..._page,
             relevanceBoost,
             finalScore,
         };

@@ -162,16 +162,29 @@
 }
 
 .scoreInfo {
+    display: flex;
+    flex-direction: column;
+    row-gap: var(--space-1);
     margin-top: 0.5rem;
     font-size: 0.8rem;
     color: var(--text-2);
 }
-.scoreInfo strong {
-    color: var(--text-1);
+
+.scoreLine {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    column-gap: var(--space-3);
+    row-gap: var(--space-1);
 }
 
-.scoreInfo + .scoreInfo {
-    margin-top: var(--space-1);
+.scoreLabel {
+    color: var(--text-muted);
+    font-weight: 600;
+}
+
+.scoreInfo strong {
+    color: var(--text-1);
 }
 
 @media (max-width: 760px) {
