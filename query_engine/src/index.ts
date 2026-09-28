@@ -33,6 +33,7 @@ import {
 import rateLimit from "express-rate-limit";
 import morgan from "morgan";
 import { englishStopWords } from "@/constants/stopWords.js";
+import { getDomainTitleBoost } from "@/util/domainTitleBoost.js";
 
 loadEnvFile();
 
@@ -249,7 +250,7 @@ app.get("/search", async (req, res) => {
     for (const row of backlinks) {
         idToBacklinkCount[row.toPageId] = +row.backlinkCount;
     }
-    // adding backlinkcount as a param
+    // adding backlinkcount as a param && applying boosts
     const finalResult = rrfResults.map((p) => {
         const backlinkCount = idToBacklinkCount[p.id] ?? 0;
         const backlinkBoost = getBacklinkBoost(backlinkCount);
@@ -260,10 +261,11 @@ app.get("/search", async (req, res) => {
         };
         return out;
     });
-    // applying backlink boosting and sorting
+    // sorting by score
     finalResult.sort(
         (a, b) => b.backlinkBoost! * b.rrfScore - a.backlinkBoost! * a.rrfScore,
     );
+
     // use the hydration query to get the final results with ids
     const paginatedResults = finalResult.slice(
         (page - 1) * pageSize,
@@ -276,10 +278,21 @@ app.get("/search", async (req, res) => {
     // map the paginated results back to have terms and type properties for info preserving order
     const resultMap = new Map(_results.map((row) => [row.id, row]));
 
-    const results = paginatedResults.map((page) => ({
-        ...page,
-        ...resultMap.get(page.id),
-    }));
+    const results = paginatedResults.map((page) => {
+        // apply a boost depending on if the pages have in thier url,heading or title query words
+        // had to do it here after the hydration query
+        // let's call it relevance boost
+        const relevanceBoost = getDomainTitleBoost(cleanedFinalQuery, page);
+        const finalScore = page.backlinkBoost! * page.rrfScore * relevanceBoost;
+        return {
+            ...page,
+            ...resultMap.get(page.id),
+            relevanceBoost,
+            finalScore,
+        };
+    });
+
+    results.sort((a, b) => b.finalScore - a.finalScore);
 
     const endTime = Date.now() - startTime;
     res.status(200).json({
