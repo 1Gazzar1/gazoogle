@@ -9,6 +9,9 @@ export interface SearchResult {
     backlinkCount?: number;
     backlinkBoost?: number;
     bm25Score?: number;
+    rrfScore?: number;
+    relevanceBoost?: number;
+    finalScore?: number;
     terms?: { term: string; tf: number; df: number }[];
 }
 

@@ -157,6 +157,25 @@ export default function ResultCard({ result, index, onOpenGraph }: Props) {
                     )}
                 </div>
             )}
+
+            {result.rrfScore !== undefined && (
+                <div className={styles.scoreInfo}>
+                    RRF Score: <strong>{result.rrfScore.toFixed(5)}</strong>
+                </div>
+            )}
+
+            {result.relevanceBoost !== undefined && (
+                <div className={styles.scoreInfo}>
+                    Relevance Boost:{" "}
+                    <strong>{result.relevanceBoost.toFixed(2)}x</strong>
+                </div>
+            )}
+
+            {result.finalScore !== undefined && (
+                <div className={styles.scoreInfo}>
+                    Final Score: <strong>{result.finalScore.toFixed(5)}</strong>
+                </div>
+            )}
         </article>
     );
 }
