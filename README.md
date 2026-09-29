@@ -1,15 +1,15 @@
 # gazoogle
 
-gazoogle is a search engine, made from scratch by me to learn how search engines work under the hood — indexing, ranking, and retrieval at a systems level, not just calling an API.
+gazoogle is a search engine, made from scratch by me to learn how search engines work under the hood — indexing, ranking, and retrieval at a systems level.
 
-It's basically Google 30 years ago or so (probably worse).
+It's basically Google 30 years ago or so (definitely worse).
 
 You can access the live app [here](https://gazoogle.duckdns.org:8443).
 I'm self-hosting gazoogle using an old computer with a duckdns domain.
 
 Since it's self-hosted, it might not be _live_ all the time.
 
-gazoogle currently has 60K+ Pages Crawled and Indexed.
+gazoogle currently has `60K+` pages crawled and indexed!
 
 > just gazoogle it!
 
@@ -20,6 +20,26 @@ gazoogle currently has 60K+ Pages Crawled and Indexed.
 #### Link Graph
 
 ![2nd screenshot of project](./readme-screenshots/image-3.png)
+
+## Setup
+
+0. Make sure you have `docker` and `docker compose` installed on your machine.
+1. Clone the repo:
+
+```sh
+git clone https://github.com/1Gazzar1/gazoogle
+cd ./gazoogle
+```
+
+2. Configure your environment variables in the `x-common-env` section inside `docker-compose.yaml` (the defaults will also work).
+3. Start the app:
+
+```sh
+docker compose up
+```
+
+4. Open `http://localhost` in your browser and start searching (if you get a warning that's normal, just go Advanced -> Proceed).
+
 
 ## Tech Stack
 
@@ -54,11 +74,11 @@ This is the high level overview of the app's architecture.
 
 - **Indexer**: Takes the crawled pages from Redis, runs text transformation, and stores the result in Postgres in an inverted index structure.
 
-- **Query Engine**: Takes user queries, does spell correction, searches the database, calculates BM25 on the fly, runs cosine vector search, then ranks and merges both result sets using RRF.
+- **Query Engine**: Takes user queries, does spell correction, searches the database, calculates BM25 on the fly, runs cosine vector search, then ranks and merges both result sets using RRF, then does some backlink and relevance boosts per page.
 
 - **UI**: A responsive web application that uses the query engine as its backend API, presenting web results, image results, query corrections, loading and empty states, retryable errors, backlink boost, pagination, and link-graph navigation.
 
-- **Reverse Proxy**: I use `Caddy` as a reverse proxy to have `Let's Encrypt` to have `https` and to route the `api` calls internally.
+- **Reverse Proxy**: I use `Caddy` as a reverse proxy to have `Let's Encrypt` Certificate to have `https` and to route the `api` calls internally.
 
 ### Other Components
 
@@ -73,25 +93,6 @@ This is the high level overview of the app's architecture.
 ![full excalidraw image](./readme-screenshots/image-2.svg)
 
 > go nuts
-
-## Setup
-
-0. Make sure you have `docker` and `docker compose` installed on your machine.
-1. Clone the repo:
-
-```sh
-git clone https://github.com/1Gazzar1/gazoogle
-cd ./gazoogle
-```
-
-2. Configure your environment variables in the `x-common-env` section inside `docker-compose.yaml` (the defaults will also work).
-3. Start the app:
-
-```sh
-docker compose up
-```
-
-4. Open `http://localhost:80` in your browser and start searching.
 
 ## Notes
 

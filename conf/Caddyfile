@@ -1,9 +1,9 @@
-gazoogle.duckdns.org { 
+localhost, gazoogle.duckdns.org {
     handle_path /api/* {
         reverse_proxy query_engine:8080
     }
-        
-    handle { 
+
+    handle {
         reverse_proxy ui:80
     }
 }
