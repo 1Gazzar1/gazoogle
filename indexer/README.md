@@ -32,7 +32,7 @@ An internal API that generates embeddings. The indexer uses it to embed page con
 Probably the most important part of the whole system.
 It's gone through several iterations to get here.
 
-[schema diagram](./readme-screenshots/image-3.png)
+![schema diagram](./readme-screenshots/image-3.png)
 
 > See [schema.sql](./db/schema.sql) for the full schema with comments.
 
