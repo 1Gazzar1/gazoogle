@@ -36,18 +36,20 @@ The query engine exposes 3 endpoints (more may be added):
 
 ### `/search`
 
-- Take the user query (`q`) and embed it upfront, for later use.
-- Run the same pre-processing used in the indexer: tokenize and lowercase (no stemming yet).
+- Take the user query (`q`) and Run the same pre-processing used in the indexer: tokenize and lowercase (no stemming yet).
 - Spell-correct any word not found in the vocab, using closest Levenshtein match.
+- Embed the corrected user query for later use.
 - Stem the corrected query and search postgres using the stems.
 - Gather all BM25-relevant data in a single JOIN query.
 - Calculate BM25 per posting, then normalize so pages with multiple matching terms collapse into one combined score.
 - Run a cosine similarity search using the query embedding.
 - Combine the BM25 and embedding results using RRF (Reciprocal Rank Fusion).
 - Add a boost based on number of Page's Backlinks (max boost is x1.5)
+- Add a Relevance Boost based on query and page domain, title and heading
 
 ### `/images`
 
+- Take the user query (`q`) and Spell-correct any word not found in the vocab, using closest Levenshtein match.
 - Embed the user query.
 - Run a cosine similarity search against image alt text embeddings.
 - Return the results.
