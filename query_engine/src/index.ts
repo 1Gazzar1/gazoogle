@@ -66,7 +66,7 @@ app.use(cors());
 app.use(limiter);
 app.use(
     morgan(
-        ":remote-addr :method :url :status :res[content-length] - :response-time ms",
+        ":date[iso] :remote-addr :method :url :status :res[content-length] - :response-time ms",
     ),
 );
 
@@ -101,8 +101,11 @@ app.get("/search", async (req, res) => {
 
     let cachedVocab = true;
     // if it was 1 hour since we made a db for vocab then do one
+    // NOTE: this is supposed to cache vocabs every hour,
+    // but since i'm not crawling/indexing any more pages in prod rn
+    // i will set it forever, so this way it's like having the entire vocab table in memory
     const dbVocabStartTime = Date.now();
-    if (dbVocabStartTime - LAST_VOCAB_CALL > 1000 * 60 * 60) {
+    if (dbVocabStartTime - LAST_VOCAB_CALL > 1000 * 60 * 60 * 999999) {
         VOCAB = await getAllVocab(dbClient);
         BUCKETS = vocabBuckets(VOCAB);
         LAST_VOCAB_CALL = dbVocabStartTime;

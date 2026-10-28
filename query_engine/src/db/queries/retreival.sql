@@ -13,7 +13,9 @@ SELECT page_id,tf,terms.df,pages.doc_length,terms.term
 FROM postings 
 JOIN terms ON word = terms.term 
 JOIN pages ON page_id = pages.id
-WHERE word = ANY(@words::text[]);
+WHERE word = ANY(@words::text[]) 
+    AND terms.df > 1 
+    AND terms.df < 25000;
 
 
 -- this one has all the width that we removed from the combined query above 

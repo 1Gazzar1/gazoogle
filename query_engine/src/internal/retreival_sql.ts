@@ -11,7 +11,9 @@ SELECT page_id,tf,terms.df,pages.doc_length,terms.term
 FROM postings 
 JOIN terms ON word = terms.term 
 JOIN pages ON page_id = pages.id
-WHERE word = ANY($1::text[])`;
+WHERE word = ANY($1::text[]) 
+    AND terms.df > 1 
+    AND terms.df < 25000`;
 
 export interface GetBM25RelevantInfoByWordsArgs {
     words: string[];
