@@ -79,7 +79,7 @@ app.get("/", (req, res) => {
 let VOCAB: GetAllVocabRow[] = [];
 let VOCAB_STEMS: Record<string, string> = {}; // this apparently is a huge time waster, so it's a big optimization to cache this aswell
 let BUCKETS: Record<number, string[]> = [];
-let LAST_VOCAB_CALL: number = 0;
+let LAST_VOCAB_CALL: number = -Infinity;
 
 app.get("/search", async (req, res) => {
     const startTime = Date.now();
