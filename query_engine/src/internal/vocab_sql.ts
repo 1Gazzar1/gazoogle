@@ -5,7 +5,10 @@ interface Client {
 }
 
 export const getAllVocabQuery = `-- name: GetAllVocab :many
-SELECT word, stem FROM vocab`;
+SELECT v.word, v.stem
+FROM vocab v 
+JOIN terms t ON v.stem = t.term
+WHERE t.df > 2`;
 
 export interface GetAllVocabRow {
     word: string;
