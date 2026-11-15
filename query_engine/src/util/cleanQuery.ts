@@ -15,5 +15,5 @@ export function cleanQuery(q: string) {
 // also for the relevance boost
 export function normalizeQuery(q: string) {
     const cleaned = q.toLowerCase().replace(/[^a-zA-Z0-9]+/g, " ");
-    return cleaned.split(" ").filter((word) => word.length > 0);
+    return cleaned.split(" ").filter((word) => word.length > 1); // ignore signle characters 
 }
