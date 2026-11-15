@@ -32,6 +32,9 @@ export interface SearchResponse {
     q: string[];
     durations: {
         totalTime: number;
+        dbBM25Time?: number;
+        dbMetadataTime?: number;
+        embeddingCosineSearchTime?: number;
     };
     pagination?: PaginationInfo;
     results: SearchResult[];

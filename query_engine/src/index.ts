@@ -7,12 +7,13 @@ import { doLevenshtein } from "@/util/levenshtein.js";
 import { getAllVocab, GetAllVocabRow } from "@/internal/vocab_sql.js";
 import { initDb } from "@/db/db.js";
 import { getBM25 } from "@/util/bm25.js";
-import { getDocInfo } from "@/internal/metadata_sql.js";
+import { getDocInfo, GetDocInfoRow } from "@/internal/metadata_sql.js";
 import { embed } from "@/util/embeddings.js";
 import { b, k1 } from "@/constants/constants.js";
 import {
     searchPageEmbeddings,
     searchImageEmbeddings,
+    SearchPageEmbeddingsRow,
 } from "@/internal/embeddings_sql.js";
 import { BM25Page, EmbeddingPage, Term } from "@/types/page.js";
 import { BM25Params } from "@/types/bm25.js";
@@ -28,12 +29,14 @@ import { vocabBuckets } from "@/util/vocab.js";
 import {
     getBM25RelevantInfoByWords,
     getPagesById,
+    GetBM25RelevantInfoByWordsRow,
     GetPagesByIdArgs,
 } from "@/internal/retreival_sql.js";
 import rateLimit from "express-rate-limit";
 import morgan from "morgan";
 import { englishStopWords } from "@/constants/stopWords.js";
 import { getDomainTitleBoost } from "@/util/domainTitleBoost.js";
+import { timedDbCall, timedDbCalls } from "@/wrappers/db.js";
 
 loadEnvFile();
 
@@ -152,27 +155,26 @@ app.get("/search", async (req, res) => {
 
     const stems = cleanedFinalQuery.map((q) => VOCAB_STEMS[q]);
 
-    const dbBM25StartTime = Date.now();
-    // this gets a JOIN of 3 tables ( postings, terms and pages ) to gather all data to calc bm25
-    const data = await getBM25RelevantInfoByWords(dbClient, {
-        words: stems,
-    });
-    const dbBM25ime = Date.now() - dbBM25StartTime;
+    // First, embed the query, then run the database retrieval in parallel
+    const embeddingTimeStart = Date.now();
+    const qEmbedding = await embed(rawFinalQuery.join(" "));
+    const embeddingTime = Date.now() - embeddingTimeStart;
+
+    const [bm25Timed, embedTimed, docsTimed] = await timedDbCalls([
+        () => getBM25RelevantInfoByWords(dbClient, { words: stems }),
+        () => searchPageEmbeddings(dbClient, {
+            embedding: JSON.stringify(qEmbedding),
+            count: LIMIT,
+        }),
+        () => getDocInfo(dbClient),
+    ]);
+
+    const data = bm25Timed.data as GetBM25RelevantInfoByWordsRow[];
+    const _embeddingResults = embedTimed.data as SearchPageEmbeddingsRow[];
+    const docsInfo = docsTimed.data as GetDocInfoRow | null;
 
     if (!data)
         throw ERRORS.NOTFOUND("no bm25 results returned, idk why or how");
-
-    const embeddingStartTime = Date.now();
-    const qEmbedding = await embed(rawFinalQuery.join(" ")); // embed the correct query with stop words
-    const embeddingTime = Date.now() - embeddingStartTime;
-
-    const dbEmbeddingStartTime = Date.now();
-    const _embeddingResults = await searchPageEmbeddings(dbClient, {
-        embedding: JSON.stringify(qEmbedding),
-        count: LIMIT,
-    });
-    const dbEmbeddingTime = Date.now() - dbEmbeddingStartTime;
-
     if (!_embeddingResults)
         throw ERRORS.NOTFOUND("no embedding results returned, idk why or how");
 
@@ -182,12 +184,6 @@ app.get("/search", async (req, res) => {
             id: row.id,
         };
     });
-
-    const dbMetadataStartTime = Date.now();
-    const docsInfo = await getDocInfo(dbClient);
-    const dbMetadataTime = Date.now() - dbMetadataStartTime;
-
-    if (!docsInfo) throw ERRORS.INTERNAL("failed to get doc info :(");
 
     // normalizing the calculating bm25
     const bm25StartTime = Date.now();
@@ -243,11 +239,11 @@ app.get("/search", async (req, res) => {
         throw ERRORS.NOTFOUND(
             "your query somehow didn't match any vector or bm25 results, that's impressive ngl",
         );
-    const dbBacklinkStartTime = Date.now();
-    const backlinks = await getBacklinkCount(dbClient, {
+    const backlinkTimed = await timedDbCall(() => getBacklinkCount(dbClient, {
         linkIds: rrfResults.map((r) => r.id),
-    });
-    const dbBacklinkTime = Date.now() - dbBacklinkStartTime;
+    }));
+    const backlinks = backlinkTimed.data;
+    const dbBacklinkTime = backlinkTimed.durationMs;
 
     const idToBacklinkCount: Record<number, number> = {};
     for (const row of backlinks) {
@@ -317,9 +313,9 @@ app.get("/search", async (req, res) => {
             cleanTime, // including tokenization and cleaning
             dbVocabTime,
             dbBacklinkTime,
-            dbBM25ime, // JOIN query
-            dbMetadataTime,
-            embddingCosineSearch: dbEmbeddingTime, // cosine search
+            dbBM25Time: bm25Timed.durationMs,
+            dbMetadataTime: docsTimed.durationMs,
+            embeddingCosineSearchTime: embedTimed.durationMs,
             embeddingTime, // embedding user query
             spellCorrectionTime: correctionTime, // levenshtien
             bm25Time, // calculating the normalizing
