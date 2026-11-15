@@ -82,3 +82,6 @@ ON pages USING hnsw (embedding vector_cosine_ops);
 
 CREATE INDEX IF NOT EXISTS images_embedding_idx
 ON images USING hnsw (embedding vector_cosine_ops); 
+
+-- for the scoring query, it makes retreiving the `doc_length` much faster, by including it when searching the `id` 
+CREATE INDEX IF NOT EXISTS idx_pages_doc_length ON pages(id) INCLUDE (doc_length);
