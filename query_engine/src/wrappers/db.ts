@@ -14,5 +14,5 @@ export async function timedDbCall<T>(
 export async function timedDbCalls(
     calls: (() => Promise<unknown>)[],
 ): Promise<{ data: unknown; durationMs: number }[]> {
-    return Promise.all(calls.map(timedDbCall));
+    return Promise.all(calls.map((fn) => timedDbCall(fn)));
 }
