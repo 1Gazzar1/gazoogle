@@ -144,66 +144,34 @@ export default function ResultCard({ result, index, onOpenGraph }: Props) {
                 result.relevanceBoost !== undefined ||
                 result.finalScore !== undefined) && (
                 <div className={styles.scoreInfo} aria-label="Ranking details">
-                    {(result.bm25Score !== undefined ||
-                        result.rrfScore !== undefined ||
-                        result.finalScore !== undefined) && (
-                        <div className={styles.scoreLine}>
-                            <span className={styles.scoreLabel}>Scores:</span>
-                            {result.bm25Score !== undefined && (
-                                <span>
-                                    BM25 score{" "}
-                                    <strong>
-                                        {result.bm25Score.toFixed(3)}
-                                    </strong>
-                                </span>
-                            )}
-                            {result.rrfScore !== undefined && (
-                                <span>
-                                    RRF score{" "}
-                                    <strong>
-                                        {result.rrfScore.toFixed(5)}
-                                    </strong>
-                                </span>
-                            )}
-                            {result.finalScore !== undefined && (
-                                <span>
-                                    Final score{" "}
-                                    <strong>
-                                        {result.finalScore.toFixed(5)}
-                                    </strong>
-                                </span>
-                            )}
-                        </div>
+                    {result.bm25Score !== undefined && (
+                        <span className={styles.scoreChip}>
+                            BM25 <strong>{result.bm25Score.toFixed(3)}</strong>
+                        </span>
+                    )}
+                    {result.rrfScore !== undefined && (
+                        <span className={styles.scoreChip}>
+                            RRF <strong>{result.rrfScore.toFixed(5)}</strong>
+                        </span>
+                    )}
+                    {result.finalScore !== undefined && (
+                        <span className={styles.scoreChip}>
+                            Final <strong>{result.finalScore.toFixed(5)}</strong>
+                        </span>
                     )}
                     {(result.backlinkCount !== undefined ||
-                        result.backlinkBoost !== undefined ||
-                        result.relevanceBoost !== undefined) && (
-                        <div className={styles.scoreLine}>
-                            <span className={styles.scoreLabel}>Boosts:</span>
-                            {(result.backlinkCount !== undefined ||
-                                result.backlinkBoost !== undefined) && (
-                                <span>
-                                    Backlinks{" "}
-                                    <strong>{result.backlinkCount ?? 0}</strong>
-                                </span>
-                            )}
+                        result.backlinkBoost !== undefined) && (
+                        <span className={styles.scoreChip}>
+                            {result.backlinkCount ?? 0} backlinks
                             {result.backlinkBoost !== undefined && (
-                                <span>
-                                    Backlink boost{" "}
-                                    <strong>
-                                        {result.backlinkBoost.toFixed(2)}x
-                                    </strong>
-                                </span>
+                                <> · {result.backlinkBoost.toFixed(2)}x</>
                             )}
-                            {result.relevanceBoost !== undefined && (
-                                <span>
-                                    Relevance boost{" "}
-                                    <strong>
-                                        {result.relevanceBoost.toFixed(2)}x
-                                    </strong>
-                                </span>
-                            )}
-                        </div>
+                        </span>
+                    )}
+                    {result.relevanceBoost !== undefined && (
+                        <span className={styles.scoreChip}>
+                            rel {result.relevanceBoost.toFixed(2)}x
+                        </span>
                     )}
                 </div>
             )}

@@ -162,10 +162,11 @@ app.get("/search", async (req, res) => {
 
     const [bm25Timed, embedTimed, docsTimed] = await timedDbCalls([
         () => getBM25RelevantInfoByWords(dbClient, { words: stems }),
-        () => searchPageEmbeddings(dbClient, {
-            embedding: JSON.stringify(qEmbedding),
-            count: LIMIT,
-        }),
+        () =>
+            searchPageEmbeddings(dbClient, {
+                embedding: JSON.stringify(qEmbedding),
+                count: LIMIT,
+            }),
         () => getDocInfo(dbClient),
     ]);
 
@@ -239,9 +240,11 @@ app.get("/search", async (req, res) => {
         throw ERRORS.NOTFOUND(
             "your query somehow didn't match any vector or bm25 results, that's impressive ngl",
         );
-    const backlinkTimed = await timedDbCall(() => getBacklinkCount(dbClient, {
-        linkIds: rrfResults.map((r) => r.id),
-    }));
+    const backlinkTimed = await timedDbCall(() =>
+        getBacklinkCount(dbClient, {
+            linkIds: rrfResults.map((r) => r.id),
+        }),
+    );
     const backlinks = backlinkTimed.data;
     const dbBacklinkTime = backlinkTimed.durationMs;
 
@@ -308,6 +311,8 @@ app.get("/search", async (req, res) => {
             pageSize,
         },
         results,
+        // because bm25,embedding and metadata are ran parrallely, adding all
+        // the values together won't actually be 'totalTime'
         durations: {
             totalTime: endTime,
             cleanTime, // including tokenization and cleaning

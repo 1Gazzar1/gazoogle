@@ -371,7 +371,7 @@ export default function ResultsPage({
                                 <h3>Images</h3>
                                 <div className={styles.webImageGrid}>
                                     {imgData.images
-                                        .slice(0, 5)
+                                        .slice(0, 6)
                                         .map((img, i) => (
                                             <ImageCard
                                                 key={img.id}

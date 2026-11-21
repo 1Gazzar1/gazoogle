@@ -12,12 +12,9 @@
   align-items: flex-end;
   gap: var(--space-4);
   padding: var(--space-4) var(--space-6);
-  background: var(--bg-card);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-md);
-  overflow-x: auto;
+  border-bottom: 1px solid var(--border-subtle);
   max-width: 100%;
+  overflow-x: auto;
 }
 
 /* Navigation buttons (Previous / Next) */
@@ -27,25 +24,20 @@
   gap: var(--space-1);
   background: transparent;
   border: none;
-  color: var(--accent-2);
+  color: var(--text-muted);
   font-family: var(--font-body);
-  font-size: 0.95rem;
+  font-size: 0.85rem;
   font-weight: 500;
   cursor: pointer;
   padding: var(--space-2) var(--space-3);
-  border-radius: var(--radius-md);
-  transition: color var(--transition-fast), background var(--transition-fast), transform var(--transition-fast);
+  border-radius: var(--radius-sm);
+  transition: color var(--transition-fast), background var(--transition-fast);
   margin-bottom: 2px;
 }
 
 .navBtn:hover:not(:disabled) {
   color: var(--text-primary);
-  background: var(--bg-input);
-  transform: translateY(-1px);
-}
-
-.navBtn:active:not(:disabled) {
-  transform: translateY(0);
+  background: var(--bg-hover);
 }
 
 .navBtn:disabled {
@@ -59,10 +51,10 @@
   pointer-events: none;
 }
 
-/* Logo container containing g a z, the o columns, and g l e */
+/* Word container: g a z [o...] g l e */
 .wordTrack {
   display: flex;
-  align-items: flex-start;
+  align-items: flex-end;
   line-height: 1;
 }
 
@@ -70,34 +62,34 @@
 .prefix {
   display: flex;
   align-items: flex-start;
-  font-size: 2.5rem;
+  font-size: 2.25rem;
   font-weight: 700;
   letter-spacing: -0.02em;
-  padding-right: 1px;
+  padding-right: 2px;
 }
 
-.letterG { color: #cc2828; }
-.letterA { color: #e05252; }
-.letterZ { color: #c44062; }
+.letterG { color: var(--accent); }
+.letterA { color: var(--accent); }
+.letterZ { color: var(--accent); }
 
 /* Suffix: g l e */
 .suffix {
   display: flex;
   align-items: flex-start;
-  font-size: 2.5rem;
+  font-size: 2.25rem;
   font-weight: 700;
   letter-spacing: -0.02em;
-  padding-left: 1px;
+  padding-left: 2px;
 }
 
-.letterG2 { color: #7c5cf6; }
-.letterL  { color: #a78bfa; }
-.letterE  { color: #7c5cf6; }
+.letterG2 { color: var(--text-muted); }
+.letterL  { color: var(--text-muted); }
+.letterE  { color: var(--text-muted); }
 
 /* Track for each page item */
 .pagesTrack {
   display: flex;
-  align-items: flex-start;
+  align-items: flex-end;
 }
 
 /* Page item column: letter 'o' stacked over the page number */
@@ -118,7 +110,7 @@
 }
 
 .pageItem:focus-visible {
-  outline: 2px solid var(--accent-1);
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 
@@ -127,33 +119,31 @@
 }
 
 .pageItem:hover:not(.activePage) .letterO {
-  filter: brightness(1.25);
-  transform: scale(1.08);
+  color: var(--text-secondary);
 }
 
 .pageItem:hover:not(.activePage) .pageNum {
   color: var(--text-primary);
-  text-decoration: underline;
 }
 
 /* Letter O */
 .letterO {
   display: block;
-  font-size: 2.5rem;
+  font-size: 2.25rem;
   font-weight: 700;
   line-height: 1;
-  color: var(--accent-2);
-  transition: all var(--transition-fast);
-  text-shadow: 0 2px 8px rgba(245, 158, 11, 0.2);
+  color: var(--text-secondary);
+  transition: color var(--transition-fast);
 }
 
 /* Page number under each O */
 .pageNum {
   display: block;
   margin-top: var(--space-1);
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--accent-2);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--text-muted);
   line-height: 1.2;
   transition: color var(--transition-fast);
 }
@@ -164,15 +154,12 @@
 }
 
 .activeO {
-  color: #cc2828; /* Highlighted red for active o */
-  text-shadow: 0 0 16px rgba(204, 40, 40, 0.6);
-  transform: scale(1.05);
+  color: var(--accent);
 }
 
 .activePage .pageNum {
   color: var(--text-primary);
-  font-weight: 700;
-  text-decoration: none !important;
+  font-weight: 500;
 }
 
 @media (max-width: 640px) {
@@ -182,7 +169,7 @@
   }
 
   .prefix, .suffix, .letterO {
-    font-size: 2rem;
+    font-size: 1.75rem;
   }
 
   .pageItem {

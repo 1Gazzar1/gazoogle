@@ -2,7 +2,7 @@
     min-height: 100dvh;
     display: flex;
     flex-direction: column;
-    background: var(--bg-base);
+    background: var(--bg);
 }
 
 /* === Header === */
@@ -14,9 +14,9 @@
     align-items: center;
     gap: var(--space-4);
     padding: var(--space-3) var(--space-6);
-    background: rgba(8, 11, 17, 0.85);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+    background: rgba(10, 9, 15, 0.88);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
     border-bottom: 1px solid var(--border-subtle);
 }
 
@@ -25,25 +25,16 @@
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    width: 40px;
-    height: 40px;
-    background: var(--accent-gradient);
+    width: 36px;
+    height: 36px;
     border-radius: var(--radius-md);
-    font-family: var(--font-display);
-    font-size: 1rem;
-    font-weight: 700;
-    color: white;
-    letter-spacing: -0.02em;
+    overflow: hidden;
     cursor: pointer;
-    transition:
-        opacity var(--transition-fast),
-        transform var(--transition-fast);
-    box-shadow: 0 2px 12px rgba(204, 40, 40, 0.3);
+    transition: opacity var(--transition-fast);
 }
 
 .logo:hover {
-    opacity: 0.85;
-    transform: scale(0.97);
+    opacity: 0.8;
 }
 
 .searchWrap {
@@ -55,29 +46,28 @@
 .tabs {
     display: flex;
     align-items: center;
-    gap: var(--space-1);
+    gap: var(--space-4);
     padding: 0 var(--space-6);
     border-bottom: 1px solid var(--border-subtle);
-    background: var(--bg-base);
+    background: var(--bg);
 }
 
 .tab {
     display: flex;
     align-items: center;
     gap: var(--space-2);
-    padding: var(--space-3) var(--space-4);
+    padding: var(--space-3) var(--space-1);
+    margin-bottom: -1px;
     font-family: var(--font-body);
-    font-size: 0.85rem;
+    font-size: 0.87rem;
     font-weight: 500;
     color: var(--text-muted);
     background: transparent;
-    border-radius: var(--radius-sm) var(--radius-sm) 0 0;
     border-bottom: 2px solid transparent;
     transition:
         color var(--transition-fast),
         border-color var(--transition-fast);
     cursor: pointer;
-    letter-spacing: 0.01em;
 }
 
 .tab svg {
@@ -91,8 +81,8 @@
 }
 
 .tabActive {
-    color: var(--accent-1);
-    border-bottom-color: var(--accent-1);
+    color: var(--text-primary);
+    border-bottom-color: var(--accent);
 }
 
 /* === Main content === */
@@ -117,22 +107,23 @@
 }
 
 .webImages {
-    width: 320px;
+    width: 340px;
     flex-shrink: 0;
-    position: sticky;
-    top: 100px;
 }
 
 .webImages h3 {
-    font-family: var(--font-display);
-    font-size: 1.1rem;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    font-weight: 500;
     margin-bottom: var(--space-3);
-    color: var(--text-primary);
+    color: var(--text-muted);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
 }
 
 .webImageGrid {
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: repeat(1, minmax(0, 1fr));
     gap: var(--space-3);
 }
 
@@ -146,10 +137,10 @@
 }
 
 .spinner {
-    width: 24px;
-    height: 24px;
+    width: 20px;
+    height: 20px;
     border: 2px solid var(--border-default);
-    border-top-color: var(--accent-1);
+    border-top-color: var(--accent);
     border-radius: 50%;
     animation: spin 0.7s linear infinite;
     align-self: center;
@@ -157,9 +148,10 @@
 
 .loadingText {
     color: var(--text-muted);
-    font-size: 0.9rem;
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
     align-self: center;
-    margin-top: calc(-1 * var(--space-2));
+    margin-top: calc(-1 * var(--space-1));
 }
 
 .skeletons {
@@ -174,9 +166,9 @@
     border-radius: var(--radius-md);
     background: linear-gradient(
         90deg,
-        var(--bg-card) 25%,
+        var(--bg-raised) 25%,
         rgba(255, 255, 255, 0.04) 50%,
-        var(--bg-card) 75%
+        var(--bg-raised) 75%
     );
     background-size: 200% 100%;
     animation: shimmer 1.5s infinite;
@@ -209,7 +201,7 @@
     max-width: 380px;
     line-height: 1.6;
     font-family: var(--font-mono);
-    background: var(--bg-card);
+    background: var(--bg-raised);
     border: 1px solid var(--border-subtle);
     border-radius: var(--radius-md);
     padding: var(--space-3) var(--space-4);
@@ -219,21 +211,17 @@
 .retryBtn {
     margin-top: var(--space-2);
     padding: var(--space-2) var(--space-6);
-    background: var(--accent-2);
+    background: var(--accent);
     color: white;
-    border-radius: var(--radius-pill);
-    font-size: 0.9rem;
-    font-weight: 600;
+    border-radius: var(--radius-md);
+    font-size: 0.87rem;
+    font-weight: 500;
     font-family: var(--font-body);
-    transition:
-        opacity var(--transition-fast),
-        transform var(--transition-fast);
-    box-shadow: 0 2px 12px rgba(204, 40, 40, 0.3);
+    transition: background var(--transition-fast);
 }
 
 .retryBtn:hover {
-    opacity: 0.88;
-    transform: scale(1.03);
+    background: var(--accent-hover);
 }
 
 /* === Correction banner === */
@@ -243,8 +231,8 @@
     gap: var(--space-2);
     font-size: 0.85rem;
     color: var(--text-secondary);
-    background: rgba(204, 40, 40, 0.08);
-    border: 1px solid rgba(204, 40, 40, 0.2);
+    background: var(--bg-raised);
+    border: 1px solid var(--border-subtle);
     border-radius: var(--radius-md);
     padding: var(--space-3) var(--space-4);
     margin-bottom: var(--space-4);
@@ -253,12 +241,12 @@
 .correctionBanner svg {
     width: 16px;
     height: 16px;
-    color: var(--accent-1);
+    color: var(--text-muted);
     flex-shrink: 0;
 }
 
 .correctionBanner strong {
-    color: var(--accent-1);
+    color: var(--text-primary);
     font-weight: 600;
 }
 
@@ -268,23 +256,22 @@
     flex-wrap: wrap;
     align-items: baseline;
     gap: var(--space-2);
-    font-size: 0.8rem;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
     color: var(--text-muted);
     margin-bottom: var(--space-4);
-    letter-spacing: 0.02em;
+    letter-spacing: 0.01em;
 }
 
 .serverTime {
-    color: var(--text-secondary);
-    font-family: var(--font-mono);
-    font-size: 0.72rem;
+    color: var(--text-muted);
+    opacity: 0.8;
 }
 
-/* === Results list === */
+/* === Results list — flat, divider-separated === */
 .resultsList {
     display: flex;
     flex-direction: column;
-    gap: var(--space-3);
 }
 
 /* === Image grid === */
@@ -326,8 +313,8 @@
     }
 
     .logo {
-        width: 34px;
-        height: 34px;
+        width: 32px;
+        height: 32px;
     }
 
     .searchWrap {
@@ -357,10 +344,6 @@
     .webImages {
         width: 100%;
         max-width: none;
-    }
-
-    .webImages {
-        position: static;
     }
 
     .webImageGrid {

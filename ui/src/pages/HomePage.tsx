@@ -12,10 +12,6 @@ export default function HomePage({ onSearch }: Props) {
 
     return (
         <main className={styles.page}>
-            {/* Floating orbs background */}
-            <div className={styles.orb1} aria-hidden="true" />
-            <div className={styles.orb2} aria-hidden="true" />
-
             <div className={styles.content}>
                 {/* Logo */}
                 <div className={styles.logoWrap}>
@@ -34,6 +30,9 @@ export default function HomePage({ onSearch }: Props) {
                         <span className={styles.logoL}>l</span>
                         <span className={styles.logoE}>e</span>
                     </span>
+                    <p className={styles.tagline}>
+                        60k pages indexed, fully home-brewed
+                    </p>
                 </div>
 
                 {/* Search bar */}

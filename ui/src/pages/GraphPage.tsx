@@ -31,6 +31,14 @@ export default function GraphPage({ pageId, pageTitle, pageUrl, onBack }: Props)
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const graphContainerRef = useRef<HTMLDivElement>(null);
 
+  const palette = useMemo(
+    () =>
+      window.getComputedStyle(document.documentElement).getPropertyValue(
+        "--accent",
+      ).trim(),
+    [],
+  );
+
   useEffect(() => {
     if (!pageId) return;
     setLoading(true);
@@ -77,8 +85,9 @@ export default function GraphPage({ pageId, pageTitle, pageUrl, onBack }: Props)
       id: pageId,
       name: pageTitle || "Current Page",
       url: pageUrl || "Current Page",
+      kind: "current",
       val: 8,
-      color: "#fb923c",
+      color: palette || "#cc2828",
       fx: 0,
       fy: 0
     });
@@ -98,8 +107,9 @@ export default function GraphPage({ pageId, pageTitle, pageUrl, onBack }: Props)
           id: link.fromPageId,
           name: link.title || "Not Indexed",
           url: link.url,
+          kind: "backlink",
           val: 3,
-          color: "#94a3b8",
+          color: "#7d9cf5",
           fx: Math.cos(angle) * radius,
           fy: Math.sin(angle) * radius
         });
@@ -120,8 +130,9 @@ export default function GraphPage({ pageId, pageTitle, pageUrl, onBack }: Props)
           id: link.toPageId,
           name: link.title || "Not Indexed",
           url: link.url,
+          kind: "forward",
           val: 3,
-          color: "#94a3b8",
+          color: "#a78bfa",
           fx: Math.cos(angle) * radius,
           fy: Math.sin(angle) * radius
         });
@@ -130,7 +141,7 @@ export default function GraphPage({ pageId, pageTitle, pageUrl, onBack }: Props)
     });
     
     return { nodes: Array.from(nodes.values()), links };
-  }, [data, pageId, pageTitle, pageUrl]);
+  }, [data, pageId, pageTitle, pageUrl, palette]);
 
   return (
     <div className={styles.page}>
@@ -138,7 +149,20 @@ export default function GraphPage({ pageId, pageTitle, pageUrl, onBack }: Props)
         <button className={styles.backBtn} onClick={onBack}>
           &larr; Back to Results
         </button>
-        <h2>Page Graph: {pageTitle || `Page #${pageId}`}</h2>
+        <h2 className={styles.title}>
+          Page Graph: {pageTitle || `Page #${pageId}`}
+        </h2>
+        <div className={styles.legend} aria-hidden="true">
+          <span className={styles.legendItem}>
+            <i className={`${styles.dot} ${styles.dotCurrent}`} /> this page
+          </span>
+          <span className={styles.legendItem}>
+            <i className={`${styles.dot} ${styles.dotBack}`} /> backlinks
+          </span>
+          <span className={styles.legendItem}>
+            <i className={`${styles.dot} ${styles.dotForward}`} /> forward
+          </span>
+        </div>
       </header>
 
       <main className={styles.content}>
@@ -153,9 +177,9 @@ export default function GraphPage({ pageId, pageTitle, pageUrl, onBack }: Props)
                 height={dimensions.height}
                 graphData={graphData}
                 nodeLabel={(node: any) => `
-                  <div style="background: rgba(0,0,0,0.8); color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px; max-width: 300px; text-align: center;">
+                  <div style="background: #100e17; color: #edeaff; border: 1px solid rgba(255,255,255,0.12); padding: 4px 8px; border-radius: 4px; font-size: 12px; max-width: 300px; text-align: center;">
                     <strong>${node.name}</strong><br/>
-                    <span style="color: #94a3b8">${node.url}</span>
+                    <span style="color: #9d95bd">${node.url}</span>
                   </div>
                 `}
                 nodeColor="color"

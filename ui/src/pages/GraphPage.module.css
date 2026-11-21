@@ -3,7 +3,7 @@
   height: 100dvh;
   display: flex;
   flex-direction: column;
-  background: var(--bg-base);
+  background: var(--bg);
   color: var(--text-primary);
   overflow: hidden;
 }
@@ -11,33 +11,75 @@
 .header {
   display: flex;
   align-items: center;
+  gap: var(--space-6);
   padding: var(--space-4) var(--space-6);
   border-bottom: 1px solid var(--border-subtle);
-  background: rgba(8, 11, 17, 0.85);
-  gap: var(--space-4);
+  background: var(--bg);
   z-index: 10;
 }
 
 .backBtn {
   background: transparent;
   border: 1px solid var(--border-subtle);
-  color: var(--text-primary);
+  color: var(--text-secondary);
   border-radius: var(--radius-md);
   padding: var(--space-2) var(--space-4);
   cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
   font-weight: 500;
-  transition: background 0.2s;
+  letter-spacing: 0.02em;
+  transition:
+    color var(--transition-fast),
+    border-color var(--transition-fast);
+  flex-shrink: 0;
 }
 
 .backBtn:hover {
-  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-primary);
+  border-color: var(--border-default);
 }
 
-.header h2 {
+.title {
   margin: 0;
-  font-size: 1.1rem;
+  font-size: 1.05rem;
   font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
+
+.legend {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.legendItem {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.02em;
+  color: var(--text-muted);
+}
+
+.dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.dotCurrent  { background: var(--accent); }
+.dotBack     { background: #7d9cf5; }
+.dotForward  { background: #a78bfa; }
 
 .content {
   flex: 1;
@@ -49,5 +91,17 @@
 .msg {
   padding: var(--space-6);
   color: var(--text-muted);
-  font-size: 0.9rem;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+}
+
+@media (max-width: 640px) {
+  .legend {
+    display: none;
+  }
+
+  .header {
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+  }
 }
